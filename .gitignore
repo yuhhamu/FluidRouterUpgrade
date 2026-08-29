@@ -1,0 +1,25 @@
+# build outputs
+.gradle/
+build/
+out/
+run/
+_removed/
+.localRepo/
+
+# logs
+*.log
+.compile_log.txt
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.eclipse/
+bin/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# runtime/local state
+.state/
