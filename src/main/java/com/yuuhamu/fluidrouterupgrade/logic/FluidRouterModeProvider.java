@@ -58,9 +58,8 @@ public class FluidRouterModeProvider implements RouterModeProvider {
 
     public static final int IMAGE_COLOR = 0x2E9BFF;
 
-    private static final int PULL_BEAM_COLOR = 0x6080FF;
-    private static final int SEND_BEAM_COLOR_MK1 = 0xFFC000;
-    private static final int SEND_BEAM_COLOR = 0xFF8000;
+    private static final int PULL_BEAM_COLOR = 0x2060FF;
+    private static final int SEND_BEAM_COLOR = 0x30C040;
     private static final int SEND_MK3_BEAM_COLOR = 0x800080;
 
     private final Map<ModularRouterBlockEntity, RouterTankState> states = new WeakHashMap<>();
@@ -168,8 +167,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
             return false;
         }
         boolean crossDimensionSender = compiled.getClass() == CompiledSenderModule3.class;
-        int beamColor = compiled.getClass() == CompiledSenderModule1.class ? SEND_BEAM_COLOR_MK1 : SEND_BEAM_COLOR;
-        return pushToTarget(router, target, compiled.getFilter(), compiled.getRegulationAmount(), beamColor, crossDimensionSender);
+        return pushToTarget(router, target, compiled.getFilter(), compiled.getRegulationAmount(), SEND_BEAM_COLOR, crossDimensionSender);
     }
 
     private ModuleTarget resolveSenderTarget(ModularRouterBlockEntity router, CompiledModule compiled) {
