@@ -2,6 +2,7 @@ package com.yuuhamu.fluidrouterupgrade;
 
 import com.yuuhamu.fluidrouterupgrade.config.FluidRouterUpgradeConfig;
 import com.yuuhamu.fluidrouterupgrade.logic.FluidRouterModeProvider;
+import com.yuuhamu.fluidrouterupgrade.network.PacketHandler;
 import com.yuuhamu.fluidrouterupgrade.registry.ModBlocks;
 import com.yuuhamu.fluidrouterupgrade.registry.ModCreativeTabs;
 import com.yuuhamu.fluidrouterupgrade.registry.ModItems;
@@ -28,6 +29,8 @@ public class FluidRouterUpgradeMod {
         modEventBus.addListener(this::commonSetup);
 
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, FluidRouterUpgradeConfig.SPEC);
+
+        PacketHandler.register();
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {

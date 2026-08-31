@@ -16,6 +16,15 @@ Fluid Router Upgradeの内部設計と実装ノートです。ソースコード
 
 ツールチップは`JeiFluidTooltipBridge`経由でJEI本体の`IIngredientRenderer<FluidStack>`から取得し、`IModIdHelper#getModNameForTooltip`で末尾にMod名行を追加することでJEI本体の表示内容と完全一致させている(`FluidRouterUpgradeJeiPlugin#onRuntimeAvailable`)。JEI未導入時は液体の表示名1行のみにフォールバックする。
 
+## 送受信レーザーの配色
+
+旧FluidRouters(`FluidTransferUpgradeLogic`/`FluidBeamHaloRenderer`)の実装をそのまま移植している。Vanilla本体の`BeamData`(1色のみ)に加え、実際に転送している液体の色を薄く重ねた「ハローライン」を独自RenderType(`FluidRenderTypes.HALO_LINE`、線幅18px相当・アルファ45/255程度の低視認性)で追加描画する2層構成。
+
+- 基本色: Puller(受信)は`0x2060FF`(青)、Sender/Distributor送信側は`0x30C040`(緑)。Distributorはpulling中かVoid側かで役割を判定し、同じ配色を適用する。
+- ハロー色: `FluidBeamHaloRenderer.getFluidRepresentativeColor`が、液体のtintColorとまだ焼きテクスチャの平均色を掛け合わせて算出する(液体ごとに1度計算しキャッシュ)。
+- Sender Module Mk3(異次元送信)のみ例外で、ターゲットが別ディメンションになり得るため実際の距離ベースのビームは描画できない。Vanilla本体の`CompiledSenderModule3#playParticles`と同じく、Router正面へ1ブロックだけ伸びる紫色(`0x800080`)の短いフェードビームを表示する(ハローラインは付与しない)。
+- 実際の描画はサーバー→クライアントの専用パケット(`FluidBeamMessage`、`FluidRouterUpgradeMod`の`PacketHandler`経由)で、Vanilla本体の`addItemBeam`呼び出しとハローラインの追加を同一パケット内でまとめて行う(Vanilla本体のビーム自動同期には乗せず、独自パケットのみで完結させる。旧FluidRoutersと同じ設計)。
+
 ## フィルタースロットの液体アイコン表示
 
 `FluidFilterSlotRenderer`が、タグ付きスロットの液体アイコンをタイント付きで重ね描きする。アイコンの奥行き(Z順)は次の理由で「Vanilla本体の`AbstractContainerScreen#renderSlot`のTAIL」から`blitOffset=300`固定・深度テストとブレンドを一時的に無効化して描画する方式に落ち着いている。
@@ -33,5 +42,6 @@ Fluid Router Upgradeの内部設計と実装ノートです。ソースコード
 - `ModuleMenuFilterClickMixin` — フィルタースロットへの左右クリック登録を直接処理する。
 - `ModuleFilterFluidRenderMixin` — デバッグ用の状態ログ出力のみ(液体アイコン描画自体は`FluidFilterIconRenderMixin`が担当)。
 - `FluidFilterIconRenderMixin` — Vanilla`renderSlot`のTAILで液体アイコンを描画する。
+- `FluidBeamMessage`(Mixinではなく通常のネットワークメッセージ) — 送受信レーザーの本体描画とハローライン追加をサーバーから同期する。
 - `ModuleFilterTooltipMixin` — Vanilla`renderTooltip`をJEI互換のツールチップへ差し替える。
 - `ModularRoutersGhostTargetFluidFixMixin` — ModularRouters自身のJEI連携`GhostTarget#accept`に割り込み、FluidStackドラッグにタグを付与する。
