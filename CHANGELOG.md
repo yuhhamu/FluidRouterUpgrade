@@ -23,6 +23,7 @@
 - Puller/Senderモジュールで液体種別フィルタ(右クリック登録)を設定しても、ツールチップがバケツのアイテム名のまま表示され、ブラックリスト/ホワイトリストによる液体の判定が一切機能しない(常に転送されてしまう)問題を修正。あわせてRegulator Augment(タンク残量による閾値制御)もPuller/Senderでは常に無効化されていた問題を修正。Distributor/Voidと同様にFilter/Regulator Augmentが機能するようになった。
 - Sender Module Mk3(異次元送信)がFluid Modeで一切動作しない問題を修正。ターゲットが別ディメンションの場合に常に送信失敗していた。
 - Sender Module Mk3の送信レーザーが、別ディメンション側の生の座標値をそのまま描画してしまい、意図しない位置(そのディメインの0,0,0付近)まで伸びて見える問題を修正。Vanilla本体のアイテムモードと同様、Router正面へ1ブロックだけ伸びる短い紫色のビームに変更した。
+- 転送レーザーの線が太すぎる問題を修正。Vanilla本体は全ビームを太さ10.0/3.0の2本のLineStateShardで描画するため、旧FluidRoutersのBeamLineThicknessMixinを移植し、両定数を2/3スケールに縮小した。
 
 ### Changed
 
