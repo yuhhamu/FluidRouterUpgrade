@@ -28,11 +28,10 @@ Fluid Mode UpgradeをRouterへ挿入すると、そのRouterが液体転送モ�
 
 フィルタースロットへバケツを左クリックで設置すると「バケツそのものの完全一致」フィルタに、右クリックで設置する(またはJEIから液体をドラッグ&ドロップする)と「液体種別」フィルタになります。液体種別フィルタは実際の液体のテクスチャと色でアイコン表示され、ホバー時にはJEI本体と同一のツールチップが表示されます(JEI未導入時は液体の表示名のみ)。
 
-Distributor・VoidモジュールはRegulator Augmentによるタンク残量ベースの閾値制御に対応しています。
+Puller・Sender・Distributor・Voidの全モジュールがFilter Augment(ブラックリスト/ホワイトリストによる液体種別フィルタリング)・Regulator Augmentによるタンク残量ベースの閾値制御に対応しています。
 
 ## 既知の制限
 
-- Filter・Regulator Augmentの対応は現時点ではDistributor・Voidモジュールのみで、Puller・Senderには適用されません(元のModularRoutersの設計スコープを踏襲した意図的な仕様です)。
 - 旧「FluidRouters」MODのデータを引き継いだり移行したりする機能はありません。完全に独立した別のMODです。
 
 ## クレジット

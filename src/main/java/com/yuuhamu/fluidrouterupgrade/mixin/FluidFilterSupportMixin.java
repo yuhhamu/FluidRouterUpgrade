@@ -3,6 +3,11 @@ package com.yuuhamu.fluidrouterupgrade.mixin;
 import com.yuuhamu.fluidrouterupgrade.logic.FluidFilterTag;
 import me.desht.modularrouters.item.module.DistributorModule;
 import me.desht.modularrouters.item.module.ModuleItem;
+import me.desht.modularrouters.item.module.PullerModule1;
+import me.desht.modularrouters.item.module.PullerModule2;
+import me.desht.modularrouters.item.module.SenderModule1;
+import me.desht.modularrouters.item.module.SenderModule2;
+import me.desht.modularrouters.item.module.SenderModule3;
 import me.desht.modularrouters.item.module.VoidModule;
 import me.desht.modularrouters.logic.filter.matchers.FluidMatcher;
 import me.desht.modularrouters.logic.filter.matchers.IItemMatcher;
@@ -33,7 +38,9 @@ public abstract class FluidFilterSupportMixin {
 
     private boolean isFluidCapableModule() {
         ModuleItem self = (ModuleItem) (Object) this;
-        return self instanceof DistributorModule || self instanceof VoidModule;
+        return self instanceof DistributorModule || self instanceof VoidModule
+                || self instanceof PullerModule1 || self instanceof PullerModule2
+                || self instanceof SenderModule1 || self instanceof SenderModule2 || self instanceof SenderModule3;
     }
 
     private static boolean isRegisteredFluidFilter(ItemStack stack) {

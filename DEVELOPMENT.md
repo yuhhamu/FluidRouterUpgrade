@@ -4,11 +4,11 @@ Fluid Router Upgradeの内部設計と実装ノートです。ソースコード
 
 ## 全体設計
 
-`FluidRouterModeProvider`が`RouterModeProvider`(Router Upgrade Core)を実装し、Fluid Mode Upgradeが挿入されたRouterのタンクcapability・NBTセーブ&ロード・Puller/Sender/Distributor/Voidの各モジュール実行処理を提供する。Filter/Regulator AugmentはDistributor/Voidのみが対象(旧FluidRoutersの実装スコープを踏襲)。
+`FluidRouterModeProvider`が`RouterModeProvider`(Router Upgrade Core)を実装し、Fluid Mode Upgradeが挿入されたRouterのタンクcapability・NBTセーブ&ロード・Puller/Sender/Distributor/Voidの各モジュール実行処理を提供する。Filter/Regulator Augmentは全モジュール種別が対象(2026-08-31、Puller/Senderの`executePull`/`executeSend`が`CompiledModule#getFilter()`/`getRegulationAmount()`を実際には一切参照せず常にnull/0を渡していた不具合を修正し、Distributor/Voidと同様にFilter/Regulator Augmentを機能させるよう修正)。
 
 ## フィルタースロットの液体種別タグ
 
-`FluidFilterTag`が、フィルタースロットに設定するアイテムスタックへ専用のNBT真偽値タグ(`FluidRouterUpgradeFluidFilter`)を立てる/読み取るユーティリティ。`ModuleMenuFilterClickMixin`がVanillaの`ModuleMenu#clicked`へ注入し、左クリック(バケツそのものの完全一致、タグ無し)と右クリック(液体種別一致、タグ付き)を区別して直接スロットへ設定する。いずれもVanillaの`isItemOKForFilter`(同一Item型の重複登録禁止チェックを含む)を経由しないため、同じ基底Item(バケツ)を複数スロットへ自由に登録できる。`FluidFilterSupportMixin`はVanillaの`ModuleItem#getFilterItemMatcher`等へ注入し、タグの有無に応じてFluidMatcher/SimpleItemMatcherを切り替える(対象はDistributorModule/VoidModuleのみ)。
+`FluidFilterTag`が、フィルタースロットに設定するアイテムスタックへ専用のNBT真偽値タグ(`FluidRouterUpgradeFluidFilter`)を立てる/読み取るユーティリティ。`ModuleMenuFilterClickMixin`がVanillaの`ModuleMenu#clicked`へ注入し、左クリック(バケツそのものの完全一致、タグ無し)と右クリック(液体種別一致、タグ付き)を区別して直接スロットへ設定する。いずれもVanillaの`isItemOKForFilter`(同一Item型の重複登録禁止チェックを含む)を経由しないため、同じ基底Item(バケツ)を複数スロットへ自由に登録できる。`FluidFilterSupportMixin`はVanillaの`ModuleItem#getFilterItemMatcher`等へ注入し、タグの有無に応じてFluidMatcher/SimpleItemMatcherを切り替える(対象はDistributorModule/VoidModule/PullerModule1/PullerModule2/SenderModule1/SenderModule2/SenderModule3の全モジュール実装。当初はDistributor/Voidのみに限定していたため、Puller/Senderで右クリック登録した液体フィルタがVanillaの`Filter#testFluid`内で常に`matchFluid`falseを返す非対応マッチャーのまま扱われ、ツールチップがバケツのアイテム名で表示され続ける・ブラックリスト/ホワイトリストの液体判定が一切効かないという不具合があった。2026-08-31修正)。
 
 ## JEI連携
 
@@ -29,7 +29,7 @@ Fluid Router Upgradeの内部設計と実装ノートです。ソースコード
 
 ## Mixinクラス一覧
 
-- `FluidFilterSupportMixin` — Distributor/VoidのFilterMatcherをタグの有無で切り替える。
+- `FluidFilterSupportMixin` — 全モジュール種別(Puller/Sender/Distributor/Void)のFilterMatcherをタグの有無で切り替える。
 - `ModuleMenuFilterClickMixin` — フィルタースロットへの左右クリック登録を直接処理する。
 - `ModuleFilterFluidRenderMixin` — デバッグ用の状態ログ出力のみ(液体アイコン描画自体は`FluidFilterIconRenderMixin`が担当)。
 - `FluidFilterIconRenderMixin` — Vanilla`renderSlot`のTAILで液体アイコンを描画する。

@@ -148,7 +148,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         if (target == null) {
             return false;
         }
-        return pullFromTarget(router, target);
+        return pullFromTarget(router, target, compiled.getFilter(), compiled.getRegulationAmount());
     }
 
     private boolean executeSend(ModularRouterBlockEntity router, CompiledModule compiled) {
@@ -156,7 +156,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         if (target == null) {
             return false;
         }
-        return pushToTarget(router, target);
+        return pushToTarget(router, target, compiled.getFilter(), compiled.getRegulationAmount());
     }
 
     private ModuleTarget resolveSenderTarget(ModularRouterBlockEntity router, CompiledModule compiled) {
@@ -355,10 +355,6 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         return FluidUtil.getFluidHandler(targetLevel, target.gPos.pos(), target.face).orElse(null);
     }
 
-    private boolean pushToTarget(ModularRouterBlockEntity router, ModuleTarget target) {
-        return pushToTarget(router, target, null, 0);
-    }
-
     private boolean pushToTarget(ModularRouterBlockEntity router, ModuleTarget target, Filter filter, int regulationAmount) {
         Level routerLevel = router.getLevel();
         if (routerLevel == null) {
@@ -391,10 +387,6 @@ public class FluidRouterModeProvider implements RouterModeProvider {
             addBeam(router, pos);
             return true;
         }).orElse(false);
-    }
-
-    private boolean pullFromTarget(ModularRouterBlockEntity router, ModuleTarget target) {
-        return pullFromTarget(router, target, null, 0);
     }
 
     private boolean pullFromTarget(ModularRouterBlockEntity router, ModuleTarget target, Filter filter, int regulationAmount) {
