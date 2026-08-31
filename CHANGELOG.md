@@ -28,6 +28,7 @@
 ### Changed
 
 - 送受信レーザーの色を、Modの固定イメージカラー1色から、ModularRouters本体が搬出入で使用しているのと全く同じ色に変更。Puller/Distributor受信側は`0x6080FF`、Sender Mk1は`0xFFC000`、Sender Mk2/Distributor送信側は`0xFF8000`、Sender Mk3(異次元送信)は`0x800080`。その周囲に実際に転送している液体の色を薄く重ねたハローラインを表示する(Sender Mk3を除く)。ハローライン自体の仕組み(液体の代表色算出・専用RenderType)は旧FluidRoutersから移植。
+- 送受信レーザーの基本色を、ModularRouters本体のアイテム転送ビームと同一色(上記)から、旧FluidRoutersが元々使っていた独自配色へ変更。アイテム転送ビームと同じ色だと液体転送との区別がつかなかったため。Pull(Puller/Distributor受信)は`0x2060FF`、Send(Sender/Distributor送信)は`0x30C040`、Sender Mk3(異次元送信)は`0x800080`のまま変更なし。Sender Mk1/Mk2の色分けも廃止し、送信は常に単一色とした。
 
 ## [0.1.0] - 2026-08-29
 
