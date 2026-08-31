@@ -7,10 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.material.Fluid;
-import net.minecraft.world.level.material.Fluids;
 import net.minecraftforge.network.NetworkEvent;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nullable;
 import java.util.function.Supplier;
@@ -67,13 +64,7 @@ public class FluidBeamStartMessage {
             if (level == null) {
                 return;
             }
-            Integer haloColor = null;
-            if (fluidId != null) {
-                Fluid fluid = ForgeRegistries.FLUIDS.getValue(fluidId);
-                if (fluid != null && fluid != Fluids.EMPTY) {
-                    haloColor = FluidBeamRenderer.getFluidRepresentativeColor(fluid);
-                }
-            }
+            Integer haloColor = FluidBeamRenderer.resolveHaloColor(fluidId);
             FluidBeamKey key = new FluidBeamKey(routerPos, targetPos, isPull, crossDimensionSender);
             FluidBeamRenderer.start(key, routerPos, targetPos, beamColor, haloColor);
         });
