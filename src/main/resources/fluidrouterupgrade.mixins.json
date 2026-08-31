@@ -12,7 +12,8 @@
     "ModuleFilterFluidRenderMixin",
     "ModuleFilterTooltipMixin",
     "ModularRoutersGhostTargetFluidFixMixin",
-    "FluidFilterIconRenderMixin"
+    "FluidFilterIconRenderMixin",
+    "BeamLineThicknessMixin"
   ],
   "server": [],
   "injectors": {
