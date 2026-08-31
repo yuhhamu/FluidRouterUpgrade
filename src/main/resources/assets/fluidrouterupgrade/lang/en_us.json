@@ -4,9 +4,5 @@
   "item.fluidrouterupgrade.balancer_augment": "Balancer Augment",
   "itemGroup.fluidrouterupgrade": "Fluid Router Upgrade",
   "gui.fluidrouterupgrade.tank.capacity": "Capacity: %s",
-  "message.fluidrouterupgrade.extracted": "Extracted fluid from the tank",
-  "message.fluidrouterupgrade.nothing_to_extract": "No fluid to extract",
-  "message.fluidrouterupgrade.collected": "Collected fluid into the tank",
-  "message.fluidrouterupgrade.nothing_to_collect": "Nothing to collect (empty container or tank full)",
   "tooltip.fluidrouterupgrade.balancer_augment": "Distributor Module only, and only while its strategy is set to Round Robin. Instead of sending one full batch to one target per tick, spreads (or drains) fluid across all connected targets so their fill percentages converge toward equal over time."
 }

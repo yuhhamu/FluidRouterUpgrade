@@ -115,9 +115,6 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         FluidActionResult result = FluidUtil.tryFillContainer(carried, tank, Integer.MAX_VALUE, player, true);
         if (result.isSuccess()) {
             player.containerMenu.setCarried(result.getResult());
-            player.displayClientMessage(Component.translatable("message.fluidrouterupgrade.extracted"), true);
-        } else {
-            player.displayClientMessage(Component.translatable("message.fluidrouterupgrade.nothing_to_extract"), true);
         }
         return true;
     }
@@ -133,9 +130,6 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         FluidActionResult result = FluidUtil.tryEmptyContainer(carried, tank, Integer.MAX_VALUE, player, true);
         if (result.isSuccess()) {
             player.containerMenu.setCarried(result.getResult());
-            player.displayClientMessage(Component.translatable("message.fluidrouterupgrade.collected"), true);
-        } else {
-            player.displayClientMessage(Component.translatable("message.fluidrouterupgrade.nothing_to_collect"), true);
         }
         return true;
     }
