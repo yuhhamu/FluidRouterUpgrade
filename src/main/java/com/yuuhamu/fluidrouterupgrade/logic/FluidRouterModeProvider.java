@@ -481,9 +481,11 @@ public class FluidRouterModeProvider implements RouterModeProvider {
                 ? null
                 : ForgeRegistries.FLUIDS.getKey(fluid.getFluid());
         BlockPos finalEffectiveTargetPos = effectiveTargetPos;
+        // durationをrouter.getTickRate()より+1長くすることで、次の実行タイミングまでの間に
+        // ビームが完全に消えてから再度現れるまでの1tick分の隙間(ちらつき)を無くす。
         PacketHandler.NETWORK.send(
                 PacketDistributor.TRACKING_CHUNK.with(() -> level.getChunkAt(routerPos)),
-                new FluidBeamMessage(routerPos, finalEffectiveTargetPos, router.getTickRate(), baseColor, reversed, fade, fluidId));
+                new FluidBeamMessage(routerPos, finalEffectiveTargetPos, router.getTickRate() + 1, baseColor, reversed, fade, fluidId));
     }
 
     @Override
