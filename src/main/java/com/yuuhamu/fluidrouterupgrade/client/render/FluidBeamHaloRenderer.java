@@ -144,6 +144,9 @@ public class FluidBeamHaloRenderer {
         int r = (e.color >> 16) & 0xFF;
         int g = (e.color >> 8) & 0xFF;
         int b = e.color & 0xFF;
+        // 中心ビーム(Vanilla本体のBEAM_LINE_THICK)側はRouterUpgradeCoreのMixinにより
+        // 1秒周期のアルファ点滅を無効化した。ハローライン側にも点滅は持たせず、
+        // 常に固定値で描画してちらつきを完全に無くす。
         int alpha = 45;
 
         double len = e.start.distanceTo(e.end);

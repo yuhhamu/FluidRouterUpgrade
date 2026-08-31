@@ -1,6 +1,7 @@
 package com.yuuhamu.fluidrouterupgrade.network;
 
 import com.yuuhamu.fluidrouterupgrade.client.render.FluidBeamHaloRenderer;
+import com.yuuhamu.routerupgradecore.api.RouterUpgradeCore;
 import me.desht.modularrouters.block.tile.ModularRouterBlockEntity;
 import me.desht.modularrouters.client.util.ClientUtil;
 import me.desht.modularrouters.util.BeamData;
@@ -73,6 +74,10 @@ public class FluidBeamMessage {
             if (fade) {
                 data = data.fadeItems();
             }
+            // 中心ビーム(Vanilla本体のBEAM_LINE_THICK)側の1秒周期アルファ点滅は
+            // 無効化する。点滅演出はハローライン(FluidBeamHaloRenderer)側にのみ持たせ、
+            // 中心ビームは常に一定の明るさで描画されるようにする。
+            RouterUpgradeCore.markBeamNoPulse(data);
             router.addItemBeam(data);
 
             if (fluidId != null) {
