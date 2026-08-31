@@ -10,6 +10,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.FastColor;
+import net.minecraft.util.Mth;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.Fluid;
@@ -32,8 +33,10 @@ import java.util.Map;
  * tick経過による自動消滅は一切行わない)。
  *
  * 中心ビームはVanilla本体と同じRenderType(ModRenderTypes.BEAM_LINE_THICK/THIN)を
- * 使って描画するが、アルファ値は常に固定とし、Vanilla本体が本来かけている
- * 1秒周期の点滅は再現しない(ちらつき対策として明示的に排除している)。
+ * 使って描画する。太線部分はVanilla本体と同じ1秒周期のアルファ点滅
+ * (getGameTime()基準のsin波)を再現し、ハローラインにも同じ位相の点滅を
+ * 持たせている(ユーザー要望により、開始/継続/終了の切り替え自体が
+ * durationに頼らず正確になったため、点滅演出そのものは復活させている)。
  */
 public class FluidBeamRenderer {
 
@@ -131,8 +134,9 @@ public class FluidBeamRenderer {
         Vec3 projectedView = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
         matrixStack.translate(-projectedView.x(), -projectedView.y(), -projectedView.z());
 
+        long gameTime = level.getGameTime();
         for (Entry e : ACTIVE.values()) {
-            renderBeam(buffer, matrixStack, e);
+            renderBeam(buffer, matrixStack, e, gameTime);
         }
         buffer.endBatch(ModRenderTypes.BEAM_LINE_THICK);
         buffer.endBatch(ModRenderTypes.BEAM_LINE_THIN);
@@ -140,7 +144,7 @@ public class FluidBeamRenderer {
         matrixStack.popPose();
     }
 
-    private static void renderBeam(MultiBufferSource.BufferSource buffer, PoseStack matrixStack, Entry e) {
+    private static void renderBeam(MultiBufferSource.BufferSource buffer, PoseStack matrixStack, Entry e, long gameTime) {
         Matrix4f positionMatrix = matrixStack.last().pose();
         double len = e.start.distanceTo(e.end);
         if (len < 1.0e-6) {
@@ -150,27 +154,34 @@ public class FluidBeamRenderer {
         float yn = (float) ((e.end.y() - e.start.y()) / len);
         float zn = (float) ((e.end.z() - e.start.z()) / len);
 
+        // Vanilla本体のModularRouterBER#renderBeamLineと同じ1秒周期のsin波(alpha 32〜160)。
+        int thickAlpha = (int) (Mth.sin((gameTime % 20) / 20f * 3.1415927f) * 128 + 32);
+        // Vanilla本体の細線部分は固定値192(点滅しない)。
+        int thinAlpha = 192;
+        // ハローラインは、上と同じ位相でピーク45・トラフ9になるよう比率を縮小して点滅させる。
+        int haloAlpha = (int) (Mth.sin((gameTime % 20) / 20f * 3.1415927f) * 36 + 9);
+
         int br = (e.beamColor >> 16) & 0xFF;
         int bg = (e.beamColor >> 8) & 0xFF;
         int bb = e.beamColor & 0xFF;
 
         VertexConsumer thick = buffer.getBuffer(ModRenderTypes.BEAM_LINE_THICK);
         ClientUtil.posF(thick, positionMatrix, e.start)
-                .color(br, bg, bb, 160)
+                .color(br, bg, bb, thickAlpha)
                 .normal(matrixStack.last().normal(), xn, yn, zn)
                 .endVertex();
         ClientUtil.posF(thick, positionMatrix, e.end)
-                .color(br, bg, bb, 160)
+                .color(br, bg, bb, thickAlpha)
                 .normal(matrixStack.last().normal(), xn, yn, zn)
                 .endVertex();
 
         VertexConsumer thin = buffer.getBuffer(ModRenderTypes.BEAM_LINE_THIN);
         ClientUtil.posF(thin, positionMatrix, e.start)
-                .color(br, bg, bb, 192)
+                .color(br, bg, bb, thinAlpha)
                 .normal(matrixStack.last().normal(), xn, yn, zn)
                 .endVertex();
         ClientUtil.posF(thin, positionMatrix, e.end)
-                .color(br, bg, bb, 192)
+                .color(br, bg, bb, thinAlpha)
                 .normal(matrixStack.last().normal(), xn, yn, zn)
                 .endVertex();
 
@@ -182,11 +193,11 @@ public class FluidBeamRenderer {
         int hb = e.haloColor & 0xFF;
         VertexConsumer halo = buffer.getBuffer(FluidRenderTypes.HALO_LINE);
         ClientUtil.posF(halo, positionMatrix, e.start)
-                .color(hr, hg, hb, 45)
+                .color(hr, hg, hb, haloAlpha)
                 .normal(matrixStack.last().normal(), xn, yn, zn)
                 .endVertex();
         ClientUtil.posF(halo, positionMatrix, e.end)
-                .color(hr, hg, hb, 45)
+                .color(hr, hg, hb, haloAlpha)
                 .normal(matrixStack.last().normal(), xn, yn, zn)
                 .endVertex();
     }
