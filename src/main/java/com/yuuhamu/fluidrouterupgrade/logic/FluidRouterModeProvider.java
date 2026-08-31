@@ -1,29 +1,47 @@
 package com.yuuhamu.fluidrouterupgrade.logic;
 
 import com.yuuhamu.fluidrouterupgrade.config.FluidRouterUpgradeConfig;
+import com.yuuhamu.fluidrouterupgrade.registry.ModBlocks;
 import com.yuuhamu.routerupgradecore.api.ModuleKind;
+import com.yuuhamu.routerupgradecore.api.ModuleTargeting;
 import com.yuuhamu.routerupgradecore.api.RouterModeProvider;
+import me.desht.modularrouters.block.ModularRouterBlock;
 import me.desht.modularrouters.block.tile.ModularRouterBlockEntity;
 import me.desht.modularrouters.core.ModItems;
 import me.desht.modularrouters.logic.ModuleTarget;
+import me.desht.modularrouters.logic.compiled.CompiledDistributorModule;
 import me.desht.modularrouters.logic.compiled.CompiledModule;
+import me.desht.modularrouters.logic.compiled.CompiledSenderModule1;
+import me.desht.modularrouters.logic.filter.Filter;
 import me.desht.modularrouters.util.BeamData;
+import me.desht.modularrouters.util.BlockUtil;
 import me.desht.modularrouters.util.MiscUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.GlobalPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
+import net.minecraftforge.fluids.FluidActionResult;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fluids.capability.templates.FluidTank;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -32,7 +50,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
     private static final String NBT_TANK = "FluidRouterUpgradeTank";
     private static final String NBT_TANK_CAPACITY = "FluidRouterUpgradeTankCapacity";
 
-    public static final int DEFAULT_BEAM_COLOR = 0x2E9BFF;
+    public static final int IMAGE_COLOR = 0x2E9BFF;
 
     private final Map<ModularRouterBlockEntity, RouterTankState> states = new WeakHashMap<>();
 
@@ -77,15 +95,48 @@ public class FluidRouterModeProvider implements RouterModeProvider {
     }
 
     @Override
+    public boolean onBufferSlotExtract(ModularRouterBlockEntity router, Player player) {
+        ItemStack carried = player.containerMenu.getCarried();
+        if (carried.isEmpty() || carried.getCount() != 1
+                || !carried.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).isPresent()) {
+            return false;
+        }
+        FluidTank tank = stateOf(router).tank;
+        FluidActionResult result = FluidUtil.tryFillContainer(carried, tank, Integer.MAX_VALUE, player, true);
+        if (result.isSuccess()) {
+            player.containerMenu.setCarried(result.getResult());
+            player.displayClientMessage(Component.translatable("message.fluidrouterupgrade.extracted"), true);
+        } else {
+            player.displayClientMessage(Component.translatable("message.fluidrouterupgrade.nothing_to_extract"), true);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onBufferSlotCollect(ModularRouterBlockEntity router, Player player) {
+        ItemStack carried = player.containerMenu.getCarried();
+        if (carried.isEmpty() || carried.getCount() != 1
+                || !carried.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).isPresent()) {
+            return false;
+        }
+        FluidTank tank = stateOf(router).tank;
+        FluidActionResult result = FluidUtil.tryEmptyContainer(carried, tank, Integer.MAX_VALUE, player, true);
+        if (result.isSuccess()) {
+            player.containerMenu.setCarried(result.getResult());
+            player.displayClientMessage(Component.translatable("message.fluidrouterupgrade.collected"), true);
+        } else {
+            player.displayClientMessage(Component.translatable("message.fluidrouterupgrade.nothing_to_collect"), true);
+        }
+        return true;
+    }
+
+    @Override
     public boolean executeModuleLogic(ModularRouterBlockEntity router, ModuleKind kind, CompiledModule vanillaCompiledModule) {
         return switch (kind) {
             case PULLER -> executePull(router, vanillaCompiledModule);
-            case VOID -> executeVoid(router);
-            // Sender/Distributorはme.desht.modularrouters.logic.compiled.CompiledSenderModule1系の
-            // getEffectiveTarget()がITEM_HANDLER決め打ちの範囲探索を行うため、現状のRouterUpgradeCore APIでは
-            // 生のターゲット(GlobalPos/face)を取得できず、フルード用に再実装できない。
-            // RouterUpgradeCore側にターゲット取得用のAPI追加が必要(design doc §9参照、Phase 2の後続課題)。
-            case SENDER, DISTRIBUTOR -> false;
+            case VOID -> executeVoid(router, vanillaCompiledModule);
+            case SENDER -> executeSend(router, vanillaCompiledModule);
+            case DISTRIBUTOR -> executeDistribute(router, vanillaCompiledModule);
         };
     }
 
@@ -97,6 +148,256 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         if (target == null) {
             return false;
         }
+        return pullFromTarget(router, target);
+    }
+
+    private boolean executeSend(ModularRouterBlockEntity router, CompiledModule compiled) {
+        ModuleTarget target = resolveSenderTarget(router, compiled);
+        if (target == null) {
+            return false;
+        }
+        return pushToTarget(router, target);
+    }
+
+    private ModuleTarget resolveSenderTarget(ModularRouterBlockEntity router, CompiledModule compiled) {
+        if (compiled.getClass() == CompiledSenderModule1.class) {
+            return scanForFluidTarget(router, compiled);
+        }
+        ModuleTarget target = ModuleTargeting.getTarget(compiled);
+        if (target == null) {
+            return null;
+        }
+        Level level = router.getLevel();
+        if (level == null || !target.isSameWorld(level)) {
+            return null;
+        }
+        if (router.getBlockPos().distSqr(target.gPos.pos()) > (double) ModuleTargeting.getRangeSquared(compiled)) {
+            return null;
+        }
+        return target;
+    }
+
+    private ModuleTarget scanForFluidTarget(ModularRouterBlockEntity router, CompiledModule compiled) {
+        ModuleTarget base = ModuleTargeting.getTarget(compiled);
+        if (base == null) {
+            return null;
+        }
+        Level level = router.nonNullLevel();
+        BlockPos p0 = base.gPos.pos();
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(p0.getX(), p0.getY(), p0.getZ());
+        Direction face = base.face;
+        Direction facing = ModuleTargeting.getFacing(compiled);
+        int range = ModuleTargeting.getRange(compiled);
+        for (int i = 1; i <= range; i++) {
+            BlockEntity te = level.getBlockEntity(pos);
+            if (te != null && te.getCapability(ForgeCapabilities.FLUID_HANDLER, face).isPresent()) {
+                GlobalPos gPos = MiscUtil.makeGlobalPos(level, pos.immutable());
+                return new ModuleTarget(gPos, face, BlockUtil.getBlockName(level, pos));
+            }
+            if (!isPassable(level, pos, face)) {
+                return null;
+            }
+            pos.move(facing);
+        }
+        return null;
+    }
+
+    private static boolean isPassable(Level level, BlockPos pos, Direction face) {
+        BlockState state = level.getBlockState(pos);
+        return !MiscUtil.blockHasSolidSide(state, level, pos, face.getOpposite()) || !state.isSolidRender(level, pos);
+    }
+
+    private boolean executeDistribute(ModularRouterBlockEntity router, CompiledModule compiled) {
+        boolean pulling = compiled instanceof CompiledDistributorModule dist && dist.isPulling();
+        List<ModuleTarget> targets = ModuleTargeting.getTargets(compiled);
+        if (targets == null || targets.isEmpty()) {
+            return false;
+        }
+        Filter filter = compiled.getFilter();
+        int regulationAmount = compiled.getRegulationAmount();
+        CompiledDistributorModule.DistributionStrategy strategy =
+                compiled instanceof CompiledDistributorModule dist
+                        ? dist.getDistributionStrategy()
+                        : CompiledDistributorModule.DistributionStrategy.ROUND_ROBIN;
+        int n = targets.size();
+        if (n == 1) {
+            return pulling ? pullFromTarget(router, targets.get(0), filter, regulationAmount)
+                    : pushToTarget(router, targets.get(0), filter, regulationAmount);
+        }
+        boolean balancerActive = strategy == CompiledDistributorModule.DistributionStrategy.ROUND_ROBIN
+                && ModuleTargeting.getAugmentCount(compiled, com.yuuhamu.fluidrouterupgrade.registry.ModItems.BALANCER_AUGMENT.get()) > 0;
+        if (balancerActive) {
+            return executeBalanced(router, targets, pulling, filter, regulationAmount);
+        }
+        return switch (strategy) {
+            case RANDOM -> {
+                ModuleTarget target = targets.get(router.nonNullLevel().random.nextInt(n));
+                yield pulling ? pullFromTarget(router, target, filter, regulationAmount)
+                        : pushToTarget(router, target, filter, regulationAmount);
+            }
+            case NEAREST_FIRST -> {
+                for (ModuleTarget target : targets) {
+                    boolean ok = pulling ? pullFromTarget(router, target, filter, regulationAmount)
+                            : pushToTarget(router, target, filter, regulationAmount);
+                    if (ok) {
+                        yield true;
+                    }
+                }
+                yield false;
+            }
+            case FURTHEST_FIRST -> {
+                for (int i = n - 1; i >= 0; i--) {
+                    ModuleTarget target = targets.get(i);
+                    boolean ok = pulling ? pullFromTarget(router, target, filter, regulationAmount)
+                            : pushToTarget(router, target, filter, regulationAmount);
+                    if (ok) {
+                        yield true;
+                    }
+                }
+                yield false;
+            }
+            case ROUND_ROBIN -> {
+                int start = stateOf(router).distributorIndex;
+                boolean success = false;
+                for (int i = 0; i < n; i++) {
+                    int idx = (start + i) % n;
+                    ModuleTarget target = targets.get(idx);
+                    boolean ok = pulling ? pullFromTarget(router, target, filter, regulationAmount)
+                            : pushToTarget(router, target, filter, regulationAmount);
+                    if (ok) {
+                        stateOf(router).distributorIndex = idx + 1;
+                        success = true;
+                        break;
+                    }
+                }
+                yield success;
+            }
+        };
+    }
+
+    private boolean executeBalanced(ModularRouterBlockEntity router, List<ModuleTarget> targets, boolean pulling,
+                                     Filter filter, int regulationAmount) {
+        RouterTankState state = stateOf(router);
+        FluidTank tank = state.tank;
+        int allowance = computeMaxTransfer(router);
+        if (allowance <= 0) {
+            return false;
+        }
+        if (regulationAmount > 0) {
+            int tankLevel = tank.getFluidAmount();
+            if (!pulling && tankLevel <= regulationAmount) {
+                return false;
+            }
+            if (pulling && tankLevel >= regulationAmount) {
+                return false;
+            }
+        }
+
+        List<TargetHandler> infos = new ArrayList<>();
+        for (ModuleTarget target : targets) {
+            IFluidHandler handler = resolveBalanceHandler(router, target);
+            if (handler != null) {
+                infos.add(new TargetHandler(target, handler));
+            }
+        }
+        if (infos.isEmpty()) {
+            return false;
+        }
+
+        int budget = pulling
+                ? Math.min(allowance, tank.getCapacity() - tank.getFluidAmount())
+                : Math.min(allowance, tank.getFluidAmount());
+        if (budget <= 0) {
+            return false;
+        }
+
+        int n = infos.size();
+        int base = budget / n;
+        int remainder = budget % n;
+        int start = state.balancerRotation % n;
+
+        boolean any = false;
+        for (int i = 0; i < n; i++) {
+            int idx = (start + i) % n;
+            TargetHandler info = infos.get(idx);
+            int share = base + (i < remainder ? 1 : 0);
+            if (share <= 0) {
+                continue;
+            }
+            IFluidHandler src = pulling ? info.handler() : tank;
+            IFluidHandler dst = pulling ? tank : info.handler();
+            FluidStack simulated = FluidUtil.tryFluidTransfer(dst, src, share, false);
+            if (simulated.isEmpty() || (filter != null && !filter.testFluid(simulated.getFluid()))) {
+                continue;
+            }
+            FluidStack moved = FluidUtil.tryFluidTransfer(dst, src, simulated.getAmount(), true);
+            if (!moved.isEmpty()) {
+                addBeam(router, info.target().gPos.pos());
+                any = true;
+            }
+        }
+        state.balancerRotation = (start + 1) % n;
+        return any;
+    }
+
+    private record TargetHandler(ModuleTarget target, IFluidHandler handler) {
+    }
+
+    private IFluidHandler resolveBalanceHandler(ModularRouterBlockEntity router, ModuleTarget target) {
+        Level routerLevel = router.getLevel();
+        if (routerLevel == null) {
+            return null;
+        }
+        Level targetLevel = target.isSameWorld(routerLevel) ? routerLevel : MiscUtil.getWorldForGlobalPos(target.gPos);
+        if (targetLevel == null || !targetLevel.isLoaded(target.gPos.pos())) {
+            return null;
+        }
+        return FluidUtil.getFluidHandler(targetLevel, target.gPos.pos(), target.face).orElse(null);
+    }
+
+    private boolean pushToTarget(ModularRouterBlockEntity router, ModuleTarget target) {
+        return pushToTarget(router, target, null, 0);
+    }
+
+    private boolean pushToTarget(ModularRouterBlockEntity router, ModuleTarget target, Filter filter, int regulationAmount) {
+        Level routerLevel = router.getLevel();
+        if (routerLevel == null) {
+            return false;
+        }
+        Level targetLevel = target.isSameWorld(routerLevel) ? routerLevel : MiscUtil.getWorldForGlobalPos(target.gPos);
+        if (targetLevel == null) {
+            return false;
+        }
+        BlockPos pos = target.gPos.pos();
+        LazyOptional<IFluidHandler> destCap = FluidUtil.getFluidHandler(targetLevel, pos, target.face);
+        if (!destCap.isPresent()) {
+            return false;
+        }
+        FluidTank tank = stateOf(router).tank;
+        if (regulationAmount > 0 && tank.getFluidAmount() <= regulationAmount) {
+            return false;
+        }
+        int maxTransfer = computeMaxTransfer(router);
+        FluidStack simulated = tank.drain(maxTransfer, IFluidHandler.FluidAction.SIMULATE);
+        if (simulated.isEmpty() || (filter != null && !filter.testFluid(simulated.getFluid()))) {
+            return false;
+        }
+        return destCap.map(dest -> {
+            int filled = dest.fill(simulated, IFluidHandler.FluidAction.EXECUTE);
+            if (filled <= 0) {
+                return false;
+            }
+            tank.drain(new FluidStack(simulated.getFluid(), filled), IFluidHandler.FluidAction.EXECUTE);
+            addBeam(router, pos);
+            return true;
+        }).orElse(false);
+    }
+
+    private boolean pullFromTarget(ModularRouterBlockEntity router, ModuleTarget target) {
+        return pullFromTarget(router, target, null, 0);
+    }
+
+    private boolean pullFromTarget(ModularRouterBlockEntity router, ModuleTarget target, Filter filter, int regulationAmount) {
         Level routerLevel = router.getLevel();
         if (routerLevel == null) {
             return false;
@@ -111,25 +412,31 @@ public class FluidRouterModeProvider implements RouterModeProvider {
             return false;
         }
         FluidTank tank = stateOf(router).tank;
+        if (regulationAmount > 0 && tank.getFluidAmount() >= regulationAmount) {
+            return false;
+        }
         int maxTransfer = computeMaxTransfer(router);
         return sourceCap.map(source -> {
             FluidStack simulated = source.drain(maxTransfer, IFluidHandler.FluidAction.SIMULATE);
-            if (simulated.isEmpty()) {
+            if (simulated.isEmpty() || (filter != null && !filter.testFluid(simulated.getFluid()))) {
                 return false;
             }
             int filled = tank.fill(simulated, IFluidHandler.FluidAction.EXECUTE);
             if (filled <= 0) {
                 return false;
             }
-            FluidStack drained = new FluidStack(simulated.getFluid(), filled);
-            source.drain(drained, IFluidHandler.FluidAction.EXECUTE);
+            source.drain(new FluidStack(simulated.getFluid(), filled), IFluidHandler.FluidAction.EXECUTE);
             addBeam(router, pos);
             return true;
         }).orElse(false);
     }
 
-    private boolean executeVoid(ModularRouterBlockEntity router) {
+    private boolean executeVoid(ModularRouterBlockEntity router, CompiledModule compiled) {
         FluidTank tank = stateOf(router).tank;
+        FluidStack current = tank.getFluid();
+        if (current.isEmpty() || !compiled.getFilter().testFluid(current.getFluid())) {
+            return false;
+        }
         int maxTransfer = computeMaxTransfer(router);
         FluidStack drained = tank.drain(maxTransfer, IFluidHandler.FluidAction.EXECUTE);
         return !drained.isEmpty();
@@ -139,7 +446,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         if (router.getUpgradeCount(ModItems.MUFFLER_UPGRADE.get()) >= 2) {
             return;
         }
-        router.addItemBeam(new BeamData(router.getTickRate(), targetPos, DEFAULT_BEAM_COLOR));
+        router.addItemBeam(new BeamData(router.getTickRate(), targetPos, IMAGE_COLOR));
     }
 
     @Override
@@ -200,14 +507,60 @@ public class FluidRouterModeProvider implements RouterModeProvider {
     }
 
     @Override
-    public Integer getBeamColor(ModularRouterBlockEntity router) {
-        return DEFAULT_BEAM_COLOR;
+    public BlockState getVisualCamouflage(ModularRouterBlockEntity router) {
+        BlockState routerState = router.getBlockState();
+        Direction facing = routerState.getValue(ModularRouterBlock.FACING);
+        boolean active = routerState.getValue(ModularRouterBlock.ACTIVE);
+        return ModBlocks.FLUID_ROUTER_VISUAL.get().defaultBlockState()
+                .setValue(ModularRouterBlock.FACING, facing)
+                .setValue(ModularRouterBlock.ACTIVE, active);
+    }
+
+    @Override
+    public ResourceLocation getBufferContentTexture(ModularRouterBlockEntity router) {
+        FluidStack contents = stateOf(router).tank.getFluid();
+        if (contents.isEmpty()) {
+            return null;
+        }
+        IClientFluidTypeExtensions props = IClientFluidTypeExtensions.of(contents.getFluid());
+        return props.getStillTexture(contents);
+    }
+
+    @Override
+    public int getBufferContentTintColor(ModularRouterBlockEntity router) {
+        FluidStack contents = stateOf(router).tank.getFluid();
+        if (contents.isEmpty()) {
+            return 0xFFFFFF;
+        }
+        IClientFluidTypeExtensions props = IClientFluidTypeExtensions.of(contents.getFluid());
+        return props.getTintColor(contents);
+    }
+
+    @Override
+    public List<Component> getBufferTooltip(ModularRouterBlockEntity router) {
+        FluidTank tank = stateOf(router).tank;
+        FluidStack contents = tank.getFluid();
+        int capacity = tank.getCapacity();
+        List<Component> lines = new ArrayList<>();
+        if (contents.isEmpty()) {
+            lines.add(Component.translatable("gui.fluidrouterupgrade.tank.capacity",
+                    Component.translatable("modularrouters.guiText.tooltip.regulator.labelFluidmB", capacity)));
+        } else {
+            lines.add(contents.getDisplayName());
+            lines.add(Component.translatable("modularrouters.guiText.tooltip.regulator.labelFluidmB", contents.getAmount())
+                    .append(" / ")
+                    .append(Component.translatable("modularrouters.guiText.tooltip.regulator.labelFluidmB", capacity)));
+        }
+        return lines;
     }
 
     private static final class RouterTankState {
         final FluidTank tank;
         final LazyOptional<IFluidHandler> tankCap;
         final LazyOptional<IFluidHandlerItem> tankItemCap;
+        int distributorIndex = 0;
+
+        int balancerRotation = 0;
 
         RouterTankState(ModularRouterBlockEntity router) {
             this.tank = new FluidTank(baseTankCapacity()) {
@@ -225,3 +578,4 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         }
     }
 }
+

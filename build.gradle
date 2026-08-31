@@ -75,6 +75,20 @@ repositories {
             includeGroup "maven.modrinth"
         }
     }
+    maven {
+        name = "ModMaven"
+        url = "https://modmaven.dev"
+        content {
+            includeGroup "mezz.jei"
+        }
+    }
+    maven {
+        name = "Progwml6 maven"
+        url = "https://dvs1.progwml6.com/files/maven/"
+        content {
+            includeGroup "mezz.jei"
+        }
+    }
 }
 
 dependencies {
@@ -82,11 +96,25 @@ dependencies {
 
     implementation fg.deobf("maven.modrinth:modular-routers:${modularrouters_version}")
 
-    compileOnly "com.yuuhamu:routerupgradecore-api:${routerupgradecore_version}:api"
+    compileOnly files("${project(':').projectDir}/../../../RouterUpgradeCore/Forge/1.20.1/build/libs/routerupgradecore-${routerupgradecore_version}.jar")
+
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+
+    compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
+    compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}")
+    runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+jar {
+    manifest {
+        attributes([
+                "MixinConfigs": "fluidrouterupgrade.mixins.json"
+        ])
+    }
 }
 
 tasks.named('processResources', ProcessResources).configure {
@@ -105,3 +133,4 @@ tasks.named('processResources', ProcessResources).configure {
         expand replaceProperties + [project: project]
     }
 }
+

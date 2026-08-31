@@ -2,6 +2,8 @@ package com.yuuhamu.fluidrouterupgrade;
 
 import com.yuuhamu.fluidrouterupgrade.config.FluidRouterUpgradeConfig;
 import com.yuuhamu.fluidrouterupgrade.logic.FluidRouterModeProvider;
+import com.yuuhamu.fluidrouterupgrade.registry.ModBlocks;
+import com.yuuhamu.fluidrouterupgrade.registry.ModCreativeTabs;
 import com.yuuhamu.fluidrouterupgrade.registry.ModItems;
 import com.yuuhamu.routerupgradecore.api.RouterUpgradeCore;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -20,6 +22,8 @@ public class FluidRouterUpgradeMod {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
         ModItems.REGISTRY.register(modEventBus);
+        ModBlocks.REGISTRY.register(modEventBus);
+        ModCreativeTabs.REGISTRY.register(modEventBus);
 
         modEventBus.addListener(this::commonSetup);
 
@@ -28,6 +32,8 @@ public class FluidRouterUpgradeMod {
 
     private void commonSetup(FMLCommonSetupEvent event) {
         event.enqueueWork(() ->
-                RouterUpgradeCore.registerMode(ModItems.FLUID_MODE_UPGRADE.get(), new FluidRouterModeProvider()));
+                RouterUpgradeCore.registerMode(ModItems.FLUID_MODE_UPGRADE.get(), new FluidRouterModeProvider(),
+                        FluidRouterModeProvider.IMAGE_COLOR));
     }
 }
+

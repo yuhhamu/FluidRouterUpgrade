@@ -43,3 +43,4 @@ public final class FluidRouterUpgradeConfig {
     private FluidRouterUpgradeConfig() {
     }
 }
+

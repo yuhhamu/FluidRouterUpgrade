@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.yuuhamu.fluidrouterupgrade.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "fluidrouterupgrade.refmap.json",
+  "mixins": [
+    "FluidFilterSupportMixin",
+    "ModuleMenuFilterClickMixin"
+  ],
+  "client": [
+    "ModuleFilterFluidRenderMixin",
+    "ModuleFilterTooltipMixin",
+    "ModularRoutersGhostTargetFluidFixMixin",
+    "FluidFilterIconRenderMixin"
+  ],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

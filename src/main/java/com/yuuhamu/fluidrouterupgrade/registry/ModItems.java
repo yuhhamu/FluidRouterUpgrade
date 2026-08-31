@@ -1,6 +1,7 @@
 package com.yuuhamu.fluidrouterupgrade.registry;
 
 import com.yuuhamu.fluidrouterupgrade.FluidRouterUpgradeMod;
+import com.yuuhamu.fluidrouterupgrade.item.BalancerAugment;
 import com.yuuhamu.fluidrouterupgrade.item.FluidModeUpgrade;
 import com.yuuhamu.fluidrouterupgrade.item.TankUpgrade;
 import net.minecraft.world.item.Item;
@@ -18,4 +19,8 @@ public class ModItems {
 
     public static final RegistryObject<Item> TANK_UPGRADE = REGISTRY.register("tank_upgrade",
             TankUpgrade::new);
+
+    public static final RegistryObject<Item> BALANCER_AUGMENT = REGISTRY.register("balancer_augment",
+            BalancerAugment::new);
 }
+
