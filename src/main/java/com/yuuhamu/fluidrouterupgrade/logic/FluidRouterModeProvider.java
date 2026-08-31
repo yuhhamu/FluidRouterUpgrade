@@ -58,8 +58,9 @@ public class FluidRouterModeProvider implements RouterModeProvider {
 
     public static final int IMAGE_COLOR = 0x2E9BFF;
 
-    private static final int PULL_BEAM_COLOR = 0x2060FF;
-    private static final int SEND_BEAM_COLOR = 0x30C040;
+    private static final int PULL_BEAM_COLOR = 0x6080FF;
+    private static final int SEND_BEAM_COLOR_MK1 = 0xFFC000;
+    private static final int SEND_BEAM_COLOR = 0xFF8000;
     private static final int SEND_MK3_BEAM_COLOR = 0x800080;
 
     private final Map<ModularRouterBlockEntity, RouterTankState> states = new WeakHashMap<>();
@@ -167,7 +168,8 @@ public class FluidRouterModeProvider implements RouterModeProvider {
             return false;
         }
         boolean crossDimensionSender = compiled.getClass() == CompiledSenderModule3.class;
-        return pushToTarget(router, target, compiled.getFilter(), compiled.getRegulationAmount(), crossDimensionSender);
+        int beamColor = compiled.getClass() == CompiledSenderModule1.class ? SEND_BEAM_COLOR_MK1 : SEND_BEAM_COLOR;
+        return pushToTarget(router, target, compiled.getFilter(), compiled.getRegulationAmount(), beamColor, crossDimensionSender);
     }
 
     private ModuleTarget resolveSenderTarget(ModularRouterBlockEntity router, CompiledModule compiled) {
@@ -242,7 +244,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         int n = targets.size();
         if (n == 1) {
             return pulling ? pullFromTarget(router, targets.get(0), filter, regulationAmount)
-                    : pushToTarget(router, targets.get(0), filter, regulationAmount, false);
+                    : pushToTarget(router, targets.get(0), filter, regulationAmount, SEND_BEAM_COLOR, false);
         }
         boolean balancerActive = strategy == CompiledDistributorModule.DistributionStrategy.ROUND_ROBIN
                 && ModuleTargeting.getAugmentCount(compiled, com.yuuhamu.fluidrouterupgrade.registry.ModItems.BALANCER_AUGMENT.get()) > 0;
@@ -253,12 +255,12 @@ public class FluidRouterModeProvider implements RouterModeProvider {
             case RANDOM -> {
                 ModuleTarget target = targets.get(router.nonNullLevel().random.nextInt(n));
                 yield pulling ? pullFromTarget(router, target, filter, regulationAmount)
-                        : pushToTarget(router, target, filter, regulationAmount, false);
+                        : pushToTarget(router, target, filter, regulationAmount, SEND_BEAM_COLOR, false);
             }
             case NEAREST_FIRST -> {
                 for (ModuleTarget target : targets) {
                     boolean ok = pulling ? pullFromTarget(router, target, filter, regulationAmount)
-                            : pushToTarget(router, target, filter, regulationAmount, false);
+                            : pushToTarget(router, target, filter, regulationAmount, SEND_BEAM_COLOR, false);
                     if (ok) {
                         yield true;
                     }
@@ -269,7 +271,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
                 for (int i = n - 1; i >= 0; i--) {
                     ModuleTarget target = targets.get(i);
                     boolean ok = pulling ? pullFromTarget(router, target, filter, regulationAmount)
-                            : pushToTarget(router, target, filter, regulationAmount, false);
+                            : pushToTarget(router, target, filter, regulationAmount, SEND_BEAM_COLOR, false);
                     if (ok) {
                         yield true;
                     }
@@ -283,7 +285,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
                     int idx = (start + i) % n;
                     ModuleTarget target = targets.get(idx);
                     boolean ok = pulling ? pullFromTarget(router, target, filter, regulationAmount)
-                            : pushToTarget(router, target, filter, regulationAmount, false);
+                            : pushToTarget(router, target, filter, regulationAmount, SEND_BEAM_COLOR, false);
                     if (ok) {
                         stateOf(router).distributorIndex = idx + 1;
                         success = true;
@@ -352,7 +354,8 @@ public class FluidRouterModeProvider implements RouterModeProvider {
             }
             FluidStack moved = FluidUtil.tryFluidTransfer(dst, src, simulated.getAmount(), true);
             if (!moved.isEmpty()) {
-                addFluidBeam(router, info.target().gPos.pos(), moved, pulling, false);
+                int beamColor = pulling ? PULL_BEAM_COLOR : SEND_BEAM_COLOR;
+                addFluidBeam(router, info.target().gPos.pos(), moved, beamColor, pulling, false);
                 any = true;
             }
         }
@@ -376,7 +379,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
     }
 
     private boolean pushToTarget(ModularRouterBlockEntity router, ModuleTarget target, Filter filter, int regulationAmount,
-                                  boolean crossDimensionSender) {
+                                  int beamColor, boolean crossDimensionSender) {
         Level routerLevel = router.getLevel();
         if (routerLevel == null) {
             return false;
@@ -406,7 +409,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
             }
             FluidStack moved = new FluidStack(simulated.getFluid(), filled);
             tank.drain(moved, IFluidHandler.FluidAction.EXECUTE);
-            addFluidBeam(router, pos, moved, false, crossDimensionSender);
+            addFluidBeam(router, pos, moved, beamColor, false, crossDimensionSender);
             return true;
         }).orElse(false);
     }
@@ -441,7 +444,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
             }
             FluidStack moved = new FluidStack(simulated.getFluid(), filled);
             source.drain(moved, IFluidHandler.FluidAction.EXECUTE);
-            addFluidBeam(router, pos, moved, true, false);
+            addFluidBeam(router, pos, moved, PULL_BEAM_COLOR, true, false);
             return true;
         }).orElse(false);
     }
@@ -458,7 +461,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
     }
 
     private static void addFluidBeam(ModularRouterBlockEntity router, BlockPos targetPos, FluidStack fluid,
-                                      boolean isPull, boolean crossDimensionSender) {
+                                      int beamColor, boolean isPull, boolean crossDimensionSender) {
         if (router.getUpgradeCount(ModItems.MUFFLER_UPGRADE.get()) >= 2) {
             return;
         }
@@ -478,7 +481,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
             fade = true;
             reversed = false;
         } else {
-            baseColor = isPull ? PULL_BEAM_COLOR : SEND_BEAM_COLOR;
+            baseColor = beamColor;
             fade = false;
             reversed = isPull;
         }
