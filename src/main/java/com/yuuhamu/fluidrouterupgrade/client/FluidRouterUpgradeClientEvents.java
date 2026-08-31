@@ -1,7 +1,7 @@
 package com.yuuhamu.fluidrouterupgrade.client;
 
 import com.yuuhamu.fluidrouterupgrade.FluidRouterUpgradeMod;
-import com.yuuhamu.fluidrouterupgrade.client.render.FluidBeamHaloRenderer;
+import com.yuuhamu.fluidrouterupgrade.client.render.FluidBeamRenderer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -16,6 +16,6 @@ public final class FluidRouterUpgradeClientEvents {
 
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
-        MinecraftForge.EVENT_BUS.register(FluidBeamHaloRenderer.class);
+        MinecraftForge.EVENT_BUS.register(FluidBeamRenderer.class);
     }
 }

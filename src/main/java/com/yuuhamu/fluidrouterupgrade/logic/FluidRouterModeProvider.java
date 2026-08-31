@@ -1,8 +1,10 @@
 package com.yuuhamu.fluidrouterupgrade.logic;
 
 import com.yuuhamu.fluidrouterupgrade.config.FluidRouterUpgradeConfig;
-import com.yuuhamu.fluidrouterupgrade.network.FluidBeamMessage;
+import com.yuuhamu.fluidrouterupgrade.network.FluidBeamStartMessage;
+import com.yuuhamu.fluidrouterupgrade.network.FluidBeamStopMessage;
 import com.yuuhamu.fluidrouterupgrade.network.PacketHandler;
+import com.yuuhamu.routerupgradecore.api.RouterUpgradeCore;
 import com.yuuhamu.fluidrouterupgrade.registry.ModBlocks;
 import com.yuuhamu.routerupgradecore.api.ModuleKind;
 import com.yuuhamu.routerupgradecore.api.ModuleTargeting;
@@ -347,7 +349,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
             FluidStack moved = FluidUtil.tryFluidTransfer(dst, src, simulated.getAmount(), true);
             if (!moved.isEmpty()) {
                 int beamColor = pulling ? PULL_BEAM_COLOR : SEND_BEAM_COLOR;
-                addFluidBeam(router, info.target().gPos.pos(), moved, beamColor, pulling, false);
+                reportFluidTransfer(router, info.target().gPos.pos(), moved, beamColor, pulling, false);
                 any = true;
             }
         }
@@ -401,7 +403,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
             }
             FluidStack moved = new FluidStack(simulated.getFluid(), filled);
             tank.drain(moved, IFluidHandler.FluidAction.EXECUTE);
-            addFluidBeam(router, pos, moved, beamColor, false, crossDimensionSender);
+            reportFluidTransfer(router, pos, moved, beamColor, false, crossDimensionSender);
             return true;
         }).orElse(false);
     }
@@ -436,7 +438,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
             }
             FluidStack moved = new FluidStack(simulated.getFluid(), filled);
             source.drain(moved, IFluidHandler.FluidAction.EXECUTE);
-            addFluidBeam(router, pos, moved, PULL_BEAM_COLOR, true, false);
+            reportFluidTransfer(router, pos, moved, PULL_BEAM_COLOR, true, false);
             return true;
         }).orElse(false);
     }
@@ -452,8 +454,17 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         return !drained.isEmpty();
     }
 
-    private static void addFluidBeam(ModularRouterBlockEntity router, BlockPos targetPos, FluidStack fluid,
-                                      int beamColor, boolean isPull, boolean crossDimensionSender) {
+    /**
+     * 稼働タイミング(executeModules呼び出し)ごとに輸送成功を報告する。
+     *
+     * durationによる自動失効は行わない。RouterUpgradeCore.reportBeamActive()が、
+     * このキーが直前の稼働タイミングまでアクティブでなかった場合にのみ開始メッセージ
+     * (FluidBeamStartMessage)を送信し、既にアクティブな場合は何もしない(表示を
+     * そのまま継続させる)。輸送が行われなかった稼働タイミングが来た時点で、
+     * 自動的に終了メッセージ(FluidBeamStopMessage)が送信される。
+     */
+    private static void reportFluidTransfer(ModularRouterBlockEntity router, BlockPos targetPos, FluidStack fluid,
+                                             int beamColor, boolean isPull, boolean crossDimensionSender) {
         if (router.getUpgradeCount(ModItems.MUFFLER_UPGRADE.get()) >= 2) {
             return;
         }
@@ -464,28 +475,27 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         BlockPos routerPos = router.getBlockPos();
         BlockPos effectiveTargetPos = targetPos;
         int baseColor;
-        boolean fade;
-        boolean reversed;
         if (crossDimensionSender) {
             Direction facing = router.getAbsoluteFacing(ModuleItem.RelativeDirection.FRONT);
             effectiveTargetPos = routerPos.relative(facing, 1);
             baseColor = SEND_MK3_BEAM_COLOR;
-            fade = true;
-            reversed = false;
         } else {
             baseColor = beamColor;
-            fade = false;
-            reversed = isPull;
         }
         ResourceLocation fluidId = (fluid == null || fluid.isEmpty())
                 ? null
                 : ForgeRegistries.FLUIDS.getKey(fluid.getFluid());
+
         BlockPos finalEffectiveTargetPos = effectiveTargetPos;
-        // durationをrouter.getTickRate()より+2長くすることで、次の実行タイミングまでの間に
-        // ビームが完全に消えてから再度現れるまでの隙間(ちらつき)を無くす。
-        PacketHandler.NETWORK.send(
-                PacketDistributor.TRACKING_CHUNK.with(() -> level.getChunkAt(routerPos)),
-                new FluidBeamMessage(routerPos, finalEffectiveTargetPos, router.getTickRate() + 2, baseColor, reversed, fade, fluidId));
+        int finalBaseColor = baseColor;
+        FluidBeamKey key = new FluidBeamKey(routerPos, finalEffectiveTargetPos, isPull, crossDimensionSender);
+        RouterUpgradeCore.reportBeamActive(router, key,
+                () -> PacketHandler.NETWORK.send(
+                        PacketDistributor.TRACKING_CHUNK.with(() -> level.getChunkAt(routerPos)),
+                        new FluidBeamStartMessage(routerPos, finalEffectiveTargetPos, finalBaseColor, isPull, crossDimensionSender, fluidId)),
+                () -> PacketHandler.NETWORK.send(
+                        PacketDistributor.TRACKING_CHUNK.with(() -> level.getChunkAt(routerPos)),
+                        new FluidBeamStopMessage(routerPos, finalEffectiveTargetPos, isPull, crossDimensionSender)));
     }
 
     @Override

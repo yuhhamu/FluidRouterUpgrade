@@ -23,9 +23,14 @@ public final class PacketHandler {
 
     public static void register() {
         NETWORK.registerMessage(id++,
-                FluidBeamMessage.class,
-                FluidBeamMessage::toBytes,
-                FluidBeamMessage::new,
-                FluidBeamMessage::handle);
+                FluidBeamStartMessage.class,
+                FluidBeamStartMessage::toBytes,
+                FluidBeamStartMessage::new,
+                FluidBeamStartMessage::handle);
+        NETWORK.registerMessage(id++,
+                FluidBeamStopMessage.class,
+                FluidBeamStopMessage::toBytes,
+                FluidBeamStopMessage::new,
+                FluidBeamStopMessage::handle);
     }
 }
