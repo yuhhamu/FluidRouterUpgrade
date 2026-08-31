@@ -5,6 +5,7 @@ import com.yuuhamu.fluidrouterupgrade.registry.ModBlocks;
 import com.yuuhamu.routerupgradecore.api.ModuleKind;
 import com.yuuhamu.routerupgradecore.api.ModuleTargeting;
 import com.yuuhamu.routerupgradecore.api.RouterModeProvider;
+import me.desht.modularrouters.ModularRouters;
 import me.desht.modularrouters.block.ModularRouterBlock;
 import me.desht.modularrouters.block.tile.ModularRouterBlockEntity;
 import me.desht.modularrouters.core.ModItems;
@@ -12,6 +13,7 @@ import me.desht.modularrouters.logic.ModuleTarget;
 import me.desht.modularrouters.logic.compiled.CompiledDistributorModule;
 import me.desht.modularrouters.logic.compiled.CompiledModule;
 import me.desht.modularrouters.logic.compiled.CompiledSenderModule1;
+import me.desht.modularrouters.logic.compiled.CompiledSenderModule3;
 import me.desht.modularrouters.logic.filter.Filter;
 import me.desht.modularrouters.util.BeamData;
 import me.desht.modularrouters.util.BlockUtil;
@@ -168,7 +170,16 @@ public class FluidRouterModeProvider implements RouterModeProvider {
             return null;
         }
         Level level = router.getLevel();
-        if (level == null || !target.isSameWorld(level)) {
+        if (level == null) {
+            return null;
+        }
+        if (compiled.getClass() == CompiledSenderModule3.class) {
+            boolean allowed = target.isSameWorld(level)
+                    || (!ModularRouters.getDimensionBlacklist().test(target.gPos.dimension().location())
+                        && !ModularRouters.getDimensionBlacklist().test(level.dimension().location()));
+            return allowed ? target : null;
+        }
+        if (!target.isSameWorld(level)) {
             return null;
         }
         if (router.getBlockPos().distSqr(target.gPos.pos()) > (double) ModuleTargeting.getRangeSquared(compiled)) {
