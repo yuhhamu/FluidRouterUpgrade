@@ -21,6 +21,10 @@ public class FluidRenderTypes extends RenderType {
             RenderType.CompositeState.builder()
                     .setLineState(HALO_LINE_SHARD)
                     .setShaderState(RenderStateShard.RENDERTYPE_LINES_SHADER)
+                    // Vanilla本体のBEAM_LINE_THICK/THINと同じVIEW_OFFSET_Z_LAYERINGを与え、
+                    // 中心ビーム(本体ビーム)とこのハローラインが同じ3D座標上でZファイティングし、
+                    // ちらつきが発生するのを防ぐ。
+                    .setLayeringState(RenderStateShard.VIEW_OFFSET_Z_LAYERING)
                     .setTextureState(RenderStateShard.NO_TEXTURE)
                     .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
                     .setCullState(RenderStateShard.NO_CULL)
