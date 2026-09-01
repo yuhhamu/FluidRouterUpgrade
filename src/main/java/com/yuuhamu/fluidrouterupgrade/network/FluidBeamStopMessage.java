@@ -8,11 +8,6 @@ import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
 
-/**
- * 転送ビームの描画を即座に終了するようクライアントへ伝えるメッセージ。
- * サーバー側で、直前の稼働タイミングまでアクティブだったキーが、
- * 次の稼働タイミングで報告されなかった(=輸送が行われなかった)時点で送信される。
- */
 public class FluidBeamStopMessage {
     private final BlockPos routerPos;
     private final BlockPos targetPos;

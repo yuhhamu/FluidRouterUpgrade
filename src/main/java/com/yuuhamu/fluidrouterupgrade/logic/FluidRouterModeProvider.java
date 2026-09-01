@@ -50,8 +50,6 @@ import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.fluids.capability.templates.FluidTank;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -70,10 +68,6 @@ public class FluidRouterModeProvider implements RouterModeProvider {
     private static final int PULL_BEAM_COLOR = 0x2060FF;
     private static final int SEND_BEAM_COLOR = 0x30C040;
     private static final int SEND_MK3_BEAM_COLOR = 0x800080;
-
-    // 2026-08-31: Distributor(ROUND_ROBIN)で一部ターゲットが搬入不可の場合に
-    // ビーム描画が実際の輸送先とずれる不具合の調査用一時ログ。原因確定後に削除する。
-    private static final Logger FRU_DEBUG = LogManager.getLogger("FRU-DEBUG-Distribute");
 
     private final Map<ModularRouterBlockEntity, RouterTankState> states = new WeakHashMap<>();
 
@@ -240,15 +234,6 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         if (targets == null || targets.isEmpty()) {
             return false;
         }
-        if (FRU_DEBUG.isInfoEnabled()) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < targets.size(); i++) {
-                BlockPos p = targets.get(i).gPos.pos();
-                sb.append(i).append(':').append(p.getX()).append(',').append(p.getY()).append(',').append(p.getZ()).append(' ');
-            }
-            FRU_DEBUG.info("[FRU-DEBUG][Distribute] router={} pulling={} targets=[{}]",
-                    router.getBlockPos(), pulling, sb.toString().trim());
-        }
         Filter filter = compiled.getFilter();
         int regulationAmount = compiled.getRegulationAmount();
         CompiledDistributorModule.DistributionStrategy strategy =
@@ -300,8 +285,6 @@ public class FluidRouterModeProvider implements RouterModeProvider {
                     ModuleTarget target = targets.get(idx);
                     boolean ok = pulling ? pullFromTarget(router, target, filter, regulationAmount)
                             : pushToTarget(router, target, filter, regulationAmount, SEND_BEAM_COLOR, false);
-                    FRU_DEBUG.info("[FRU-DEBUG][Distribute] router={} ROUND_ROBIN try idx={} pos={} ok={}",
-                            router.getBlockPos(), idx, target.gPos.pos(), ok);
                     if (ok) {
                         stateOf(router).distributorIndex = idx + 1;
                         success = true;
@@ -476,22 +459,6 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         return !drained.isEmpty();
     }
 
-    /**
-     * 稼働タイミング(executeModules呼び出し)ごとに輸送成功を報告する。
-     *
-     * durationによる自動失効は行わない。RouterUpgradeCore.reportBeamActive()が、
-     * このキーが直前の稼働タイミングまでアクティブでなかった場合にのみ開始メッセージ
-     * (FluidBeamStartMessage)を送信し、既にアクティブな場合は何もしない(表示を
-     * そのまま継続させる)。輸送が行われなかった稼働タイミングが来た時点で、
-     * 自動的に終了メッセージ(FluidBeamStopMessage)が送信される。
-     *
-     * あわせて、このrouterの稼働中ビームのスナップショット(RouterTankState.activeBeams)
-     * を開始/終了アクション内で更新する。このスナップショットはgetUpdateTagで
-     * クライアントへ運ばれ、リログイン・チャンク再読込時にFluidBeamRenderer.syncRouter()
-     * で復元される(BeamContinuityRegistry自体はrouterの実体に紐づいて接続断をまたいで
-     * 持続するため、再接続したクライアントへは開始イベントが再送されない ―
-     * その穴を埋めるためのもの)。
-     */
     private void reportFluidTransfer(ModularRouterBlockEntity router, BlockPos targetPos, FluidStack fluid,
                                       int beamColor, boolean isPull, boolean crossDimensionSender) {
         if (router.getUpgradeCount(ModItems.MUFFLER_UPGRADE.get()) >= 2) {
@@ -518,8 +485,6 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         BlockPos finalEffectiveTargetPos = effectiveTargetPos;
         int finalBaseColor = baseColor;
         FluidBeamKey key = new FluidBeamKey(routerPos, finalEffectiveTargetPos, isPull, crossDimensionSender);
-        FRU_DEBUG.info("[FRU-DEBUG][Distribute] router={} reportFluidTransfer targetPos(raw)={} effectiveTargetPos={} isPull={}",
-                routerPos, targetPos, finalEffectiveTargetPos, isPull);
         RouterTankState state = stateOf(router);
         RouterUpgradeCore.reportBeamActive(router, key,
                 () -> {
@@ -536,10 +501,6 @@ public class FluidRouterModeProvider implements RouterModeProvider {
                 });
     }
 
-    /**
-     * getUpdateTagで運ぶ、稼働中ビーム1件分の見た目情報(位置・pull/send・
-     * クロスディメンション有無はFluidBeamKey側で持つため、色と液体種別のみ)。
-     */
     private record BeamVisual(int color, ResourceLocation fluidId) {
     }
 
@@ -614,9 +575,6 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         if (state != null) {
             state.tankCap.invalidate();
             state.tankItemCap.invalidate();
-            // router破壊時、稼働中ビームがあれば残留させず明示的に終了通知を送る
-            // (BeamContinuityRegistry.endTick()はexecuteModulesが再度呼ばれないと
-            // 発火しないため、破壊時はそちらに任せられない)。
             Level level = router.getLevel();
             if (level != null && !level.isClientSide() && !state.activeBeams.isEmpty()) {
                 BlockPos routerPos = router.getBlockPos();

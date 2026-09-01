@@ -30,21 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * FluidRouterUpgradeの転送ビーム(中心ビーム+液体色ハローライン)を描画するクラス。
- *
- * Vanilla本体のBeamData/addItemBeamが持つ「durationで自動的に消える」仕組みは、
- * 「稼働タイミングで輸送が開始したら描画開始、継続していれば表示したまま、
- * 行われなかったら終了」という要件に合わないため使用せず、FluidBeamKeyを使って
- * 完全に自前でライフサイクルを管理する(start/stopの明示呼び出しのみで増減し、
- * tick経過による自動消滅は一切行わない)。
- *
- * 中心ビームはVanilla本体と同じRenderType(ModRenderTypes.BEAM_LINE_THICK/THIN)を
- * 使って描画する。太線部分はVanilla本体と同じ1秒周期のアルファ点滅
- * (getGameTime()基準のsin波)を再現し、ハローラインにも同じ位相の点滅を
- * 持たせている(ユーザー要望により、開始/継続/終了の切り替え自体が
- * durationに頼らず正確になったため、点滅演出そのものは復活させている)。
- */
 public class FluidBeamRenderer {
 
     private static final class Entry {
@@ -80,25 +65,6 @@ public class FluidBeamRenderer {
         ACTIVE.remove(key);
     }
 
-    /**
-     * リログイン・チャンク再読込時に受け取ったサーバー側のスナップショットで、
-     * このrouterに属するビーム表示をスナップショットと完全に一致させる(差分適用)。
-     *
-     * FluidBeamStartMessage/FluidBeamStopMessageは「現在オンラインで見ているクライアント」
-     * にのみ届く即時イベント通知であり、切断中のクライアントには一切届かない。
-     * 一方でBeamContinuityRegistry(RouterUpgradeCore側、サーバー)の状態は接続断・
-     * 再接続をまたいでrouterの実体に紐付いたまま持続するため、再接続後に輸送が
-     * 継続していても「既にアクティブ」と判定されて開始イベントが再送されず、
-     * 再接続したクライアントのACTIVE(このクラス)は空のままになる
-     * ―― これがリログイン時にビーム描画が消える根本原因と考えられる。
-     *
-     * 対策として、既存のタンク内容量と全く同じ経路(getUpdateTag/handleUpdateTag。
-     * チャンク読込・再読込のたびに必ず呼ばれることは、この経路で運ばれている
-     * タンク内容量がリログインでも正しく復元されている実績から確認済み)で、
-     * 稼働中ビームのスナップショットも一緒に送るようにし、受信のたびにこの
-     * routerに属する表示をスナップショットへ同期する(スナップショットに無い
-     * キーは停止、あるキーは開始または更新)。
-     */
     public static void syncRouter(BlockPos routerPos, List<SyncedBeam> beams) {
         Set<FluidBeamKey> keep = new HashSet<>();
         for (SyncedBeam beam : beams) {
@@ -121,10 +87,6 @@ public class FluidBeamRenderer {
         return getFluidRepresentativeColor(fluid);
     }
 
-    /**
-     * サーバーのgetUpdateTagで運ばれる、稼働中ビーム1件分のスナップショット
-     * (routerPosは呼び出し側で分かっているため含めない)。
-     */
     public record SyncedBeam(BlockPos targetPos, boolean isPull, boolean crossDimensionSender,
                               int beamColor, @Nullable ResourceLocation fluidId) {
     }
@@ -210,11 +172,8 @@ public class FluidBeamRenderer {
         float yn = (float) ((e.end.y() - e.start.y()) / len);
         float zn = (float) ((e.end.z() - e.start.z()) / len);
 
-        // Vanilla本体のModularRouterBER#renderBeamLineと同じ1秒周期のsin波(alpha 32〜160)。
         int thickAlpha = (int) (Mth.sin((gameTime % 20) / 20f * 3.1415927f) * 128 + 32);
-        // Vanilla本体の細線部分は固定値192(点滅しない)。
         int thinAlpha = 192;
-        // ハローラインは、上と同じ位相でピーク45・トラフ9になるよう比率を縮小して点滅させる。
         int haloAlpha = (int) (Mth.sin((gameTime % 20) / 20f * 3.1415927f) * 36 + 9);
 
         int br = (e.beamColor >> 16) & 0xFF;

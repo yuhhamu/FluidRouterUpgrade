@@ -12,12 +12,6 @@ import net.minecraftforge.network.NetworkEvent;
 import javax.annotation.Nullable;
 import java.util.function.Supplier;
 
-/**
- * 転送ビームの描画を開始する(または既に表示中であれば何もしない)よう
- * クライアントへ伝えるメッセージ。durationのような自動失効時間は持たない。
- * 稼働タイミングごとの継続判定はサーバー側のRouterUpgradeCore.reportBeamActiveが
- * 行い、新規開始と判定された場合にのみこのメッセージが送信される。
- */
 public class FluidBeamStartMessage {
     private final BlockPos routerPos;
     private final BlockPos targetPos;

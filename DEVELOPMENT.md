@@ -45,3 +45,17 @@ Fluid Router Upgradeの内部設計と実装ノートです。ソースコード
 - `FluidBeamMessage`(Mixinではなく通常のネットワークメッセージ) — 送受信レーザーの本体描画とハローライン追加をサーバーから同期する。
 - `ModuleFilterTooltipMixin` — Vanilla`renderTooltip`をJEI互換のツールチップへ差し替える。
 - `ModularRoutersGhostTargetFluidFixMixin` — ModularRouters自身のJEI連携`GhostTarget#accept`に割り込み、FluidStackドラッグにタグを付与する。
+
+## リログイン時のビーム消失対策
+
+RouterUpgradeCoreの`BeamContinuityRegistry`はRouterの実体に紐づいた状態としてビームの継続を管理するため、接続断・再接続をまたいでも持続する。そのため輸送が実際には継続していても、再接続直後は「既にアクティブ」と判定されて開始イベント(`FluidBeamStartMessage`)が再送されず、再接続したクライアント側の`FluidBeamRenderer.ACTIVE`は空のままになり、ビーム描画が消えたままになる不具合があった。
+
+対策として、タンク内容量の復元に既に使っている`getUpdateTag`/`handleUpdateTag`経路(チャンク読込・再読込のたびに必ず呼ばれ、タンク内容量が正しく復元される実績がある経路)に、稼働中ビームのスナップショット(`RouterTankState.activeBeams`、`FluidBeamKey`→色・液体種別)も一緒に乗せるようにした。クライアント側は受信のたびに`FluidBeamRenderer.syncRouter(routerPos, beams)`を呼び、そのRouterに属する描画エントリをスナップショットへ完全に同期する(スナップショットに無いキーは停止、あるキーは開始または更新)。
+
+## Y座標不一致に見えたビーム表示の調査結果(2026-09-01)
+
+「Distributorの複数ターゲットがY座標のみ異なる場合に、ビームが実際の転送先と異なるY座標を指すことがある」という報告を調査した。ROUND_ROBINのインデックス管理・`BeamContinuityRegistry`のSTART/STOP判定はいずれも、実際に成功したターゲットに対して設計通り正しく動作していることをログで確認済み(継続レジストリ自体の不具合ではない)。
+
+一部のターゲットが搬入不可(満杯)の状況を意図的に作って調査した結果、`pushToTarget()`が呼ぶ`IFluidHandler#fill(FluidStack, EXECUTE)`が、送信先がMekanismのタンク(`mekanism.common.capabilities.proxy.ProxyFluidHandler`、Forge Fluid互換プロキシ)の場合、`getFluidInTank(0)`/`getTankCapacity(0)`が既に同値(満杯・空き容量ゼロ)を報告しているにもかかわらず、要求量そのままを`filled`として返してくることがあるとログで確認された。Forge `IFluidHandler`の契約上`fill()`の戻り値は「実際に受け入れた量」であるはずだが、この状況ではMekanism側のFluid互換プロキシがその契約通りに動作していないように見える。
+
+この結果、`pushToTarget()`はこの戻り値を信頼して転送成功と判定し、自タンクからその分を実際に減算した上でビームを表示する(=実際には届いていない送信先にビームが向く、かつ液体が実質的に失われる)。これはFluidRouterUpgrade自体のROUND_ROBIN/ビーム管理ロジックの不具合ではなく、Mekanismの Fluid 互換プロキシとの相互運用に起因する既知の挙動として記録する。対応方針(戻り値を信用せず前後の残量差分で検証する等)は未着手。
