@@ -24,7 +24,8 @@ public class FluidRouterUpgradeMod {
 
         ModItems.REGISTRY.register(modEventBus);
         ModBlocks.REGISTRY.register(modEventBus);
-        ModCreativeTabs.REGISTRY.register(modEventBus);
+        // 1.19.2向け: CreativeModeTabはフィールド初期化時にTABS配列へ自己登録するため、クラス初期化のみを明示的にトリガーする
+        ModCreativeTabs.FLUID_ROUTER_UPGRADE_TAB.getClass();
 
         modEventBus.addListener(this::commonSetup);
 

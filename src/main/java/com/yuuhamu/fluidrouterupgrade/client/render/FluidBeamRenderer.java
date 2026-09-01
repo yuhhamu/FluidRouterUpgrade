@@ -9,7 +9,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
-import net.minecraft.util.FastColor;
 import net.minecraft.util.Mth;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.level.Level;
@@ -21,7 +20,7 @@ import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.registries.ForgeRegistries;
-import org.joml.Matrix4f;
+import com.mojang.math.Matrix4f;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -110,18 +109,18 @@ public class FluidBeamRenderer {
         long gSum = 0;
         long bSum = 0;
         long count = 0;
-        int width = sprite.contents().width();
-        int height = sprite.contents().height();
+        int width = sprite.getWidth();
+        int height = sprite.getHeight();
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                int argb = sprite.contents().getOriginalImage().getPixelRGBA(x, y);
-                int alpha = FastColor.ABGR32.alpha(argb);
+                int argb = sprite.getPixelRGBA(0, x, y);
+                int alpha = (argb >> 24) & 0xFF;
                 if (alpha < 16) {
                     continue;
                 }
-                rSum += FastColor.ABGR32.red(argb);
-                gSum += FastColor.ABGR32.green(argb);
-                bSum += FastColor.ABGR32.blue(argb);
+                rSum += argb & 0xFF;
+                gSum += (argb >> 8) & 0xFF;
+                bSum += (argb >> 16) & 0xFF;
                 count++;
             }
         }

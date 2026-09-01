@@ -36,6 +36,6 @@ description='''${mod_description}'''
 [[dependencies.${mod_id}]]
     modId="modularrouters"
     mandatory=true
-    versionRange="[12.0,)"
+    versionRange="[1.19.2-10.2,)"
     ordering="AFTER"
     side="BOTH"
