@@ -59,3 +59,7 @@ RouterUpgradeCoreの`BeamContinuityRegistry`はRouterの実体に紐づいた状
 一部のターゲットが搬入不可(満杯)の状況を意図的に作って調査した結果、`pushToTarget()`が呼ぶ`IFluidHandler#fill(FluidStack, EXECUTE)`が、送信先がMekanismのタンク(`mekanism.common.capabilities.proxy.ProxyFluidHandler`、Forge Fluid互換プロキシ)の場合、`getFluidInTank(0)`/`getTankCapacity(0)`が既に同値(満杯・空き容量ゼロ)を報告しているにもかかわらず、要求量そのままを`filled`として返してくることがあるとログで確認された。Forge `IFluidHandler`の契約上`fill()`の戻り値は「実際に受け入れた量」であるはずだが、この状況ではMekanism側のFluid互換プロキシがその契約通りに動作していないように見える。
 
 この結果、`pushToTarget()`はこの戻り値を信頼して転送成功と判定し、自タンクからその分を実際に減算した上でビームを表示する(=実際には届いていない送信先にビームが向く、かつ液体が実質的に失われる)。これはFluidRouterUpgrade自体のROUND_ROBIN/ビーム管理ロジックの不具合ではなく、Mekanismの Fluid 互換プロキシとの相互運用に起因する既知の挙動として記録する。対応方針(戻り値を信用せず前後の残量差分で検証する等)は未着手。
+
+## fluid_mode_upgradeのテクスチャを2レイヤー化(2026-09-01)
+
+`fluid_mode_upgrade`のアイテムモデルを、単一テクスチャから`routerupgradecore:item/mode_upgrade_core`(共通ベース、layer0)+`fluidrouterupgrade:item/fluid_mode_upgrade`(このMOD固有のアクセント差分、layer1)の2レイヤー構成に変更した。`fluid_mode_upgrade.png`自体もこれに合わせて、ベース込みの単独アイコンから、アクセント部分のみを描いた透過主体のテクスチャに差し替えている。この構成はRouterUpgradeCore側でmode_upgrade系アイテムのdefault規約として定義済み(RouterUpgradeCoreのDEVELOPMENT.md参照)。

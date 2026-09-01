@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "fluidrouterupgrade:item/fluid_mode_upgrade"
+    "layer0": "routerupgradecore:item/mode_upgrade_core",
+    "layer1": "fluidrouterupgrade:item/fluid_mode_upgrade"
   }
 }
