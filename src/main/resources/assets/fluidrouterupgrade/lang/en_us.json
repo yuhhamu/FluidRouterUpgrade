@@ -1,8 +1,8 @@
 {
-  "item.fluidrouterupgrade.fluid_mode_upgrade": "Fluid Mode Upgrade",
+  "item.fluidrouterupgrade.fluid_mode_upgrade": "Fluid Transfer Upgrade",
   "item.fluidrouterupgrade.tank_upgrade": "Tank Upgrade",
   "item.fluidrouterupgrade.balancer_augment": "Balancer Augment",
-  "itemGroup.fluidrouterupgrade": "Fluid Router Upgrade",
+  "itemGroup.fluidrouterupgrade": "FluidRouterUpgrade",
   "gui.fluidrouterupgrade.tank.capacity": "Capacity: %s",
   "tooltip.fluidrouterupgrade.balancer_augment": "Distributor Module only, and only while its strategy is set to Round Robin. Instead of sending one full batch to one target per tick, spreads (or drains) fluid across all connected targets so their fill percentages converge toward equal over time."
 }

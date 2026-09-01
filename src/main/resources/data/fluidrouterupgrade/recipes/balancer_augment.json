@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": {
+      "item": "modularrouters:augment_core"
+    },
+    "C": {
+      "item": "minecraft:comparator"
+    },
+    "G": {
+      "tag": "forge:glass"
+    }
+  },
+  "pattern": [
+    " C ",
+    "GAG"
+  ],
+  "result": {
+    "count": 1,
+    "item": "fluidrouterupgrade:balancer_augment"
+  },
+  "show_notification": true
+}

@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "F": { "item": "modularrouters:fluid_module" },
+    "B": { "item": "minecraft:bucket" },
+    "C": { "item": "minecraft:cauldron" },
+    "M": { "item": "routerupgradecore:mode_upgrade_core" }
+  },
+  "pattern": [
+    " F ",
+    "BMB",
+    " C "
+  ],
+  "result": { "count": 1, "item": "fluidrouterupgrade:fluid_mode_upgrade" },
+  "show_notification": true
+}

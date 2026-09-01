@@ -1,8 +1,8 @@
 {
-  "item.fluidrouterupgrade.fluid_mode_upgrade": "フルードモードアップグレード",
+  "item.fluidrouterupgrade.fluid_mode_upgrade": "液体転送アップグレード",
   "item.fluidrouterupgrade.tank_upgrade": "タンクアップグレード",
   "item.fluidrouterupgrade.balancer_augment": "バランサーオーグメント",
-  "itemGroup.fluidrouterupgrade": "フルードルーターアップグレード",
+  "itemGroup.fluidrouterupgrade": "FluidRouterUpgrade",
   "gui.fluidrouterupgrade.tank.capacity": "容量: %s",
   "tooltip.fluidrouterupgrade.balancer_augment": "Distributorモジュール専用で、戦略がラウンドロビンの場合のみ効果を発揮する。毎tick1個のターゲットへまとめて送るのではなく、接続された全ターゲットへ液体を分散(または排出)し、時間の経過とともに各ターゲットの充填率が均等に近づいていく。"
 }
