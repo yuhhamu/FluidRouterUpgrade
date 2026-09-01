@@ -25,8 +25,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraftforge.fluids.FluidStack;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,8 +33,6 @@ import java.util.List;
 public class FluidRouterUpgradeJeiPlugin implements IModPlugin {
 
     private static final ResourceLocation PLUGIN_ID = new ResourceLocation("fluidrouterupgrade", "jei_plugin");
-
-    private static final Logger FRU_DEBUG = LogManager.getLogger("FRU-DEBUG-JeiPlugin");
 
     @Override
     public ResourceLocation getPluginUid() {
@@ -60,11 +56,9 @@ public class FluidRouterUpgradeJeiPlugin implements IModPlugin {
 
     @Override
     public void onRuntimeAvailable(IJeiRuntime jeiRuntime) {
-        FRU_DEBUG.info("[FRU-DEBUG][JeiPlugin] onRuntimeAvailable() called, jeiRuntime={}", jeiRuntime);
         IIngredientManager ingredientManager = jeiRuntime.getIngredientManager();
         IModIdHelper modIdHelper = jeiRuntime.getJeiHelpers().getModIdHelper();
         IIngredientRenderer<FluidStack> renderer = ingredientManager.getIngredientRenderer(ForgeTypes.FLUID_STACK);
-        FRU_DEBUG.info("[FRU-DEBUG][JeiPlugin] renderer={}", renderer);
         JeiFluidTooltipBridge.register(fluidStack -> {
             TooltipFlag flag = Minecraft.getInstance().options.advancedItemTooltips
                     ? TooltipFlag.Default.ADVANCED
@@ -73,9 +67,7 @@ public class FluidRouterUpgradeJeiPlugin implements IModPlugin {
             ingredientManager.createTypedIngredient(ForgeTypes.FLUID_STACK, fluidStack)
                     .flatMap(modIdHelper::getModNameForTooltip)
                     .ifPresent(result::add);
-            FRU_DEBUG.info("[FRU-DEBUG][JeiPlugin] getTooltip(stack={}) -> {}", fluidStack, result);
             return result;
         });
     }
 }
-

@@ -9,7 +9,6 @@
     "ModuleMenuFilterClickMixin"
   ],
   "client": [
-    "ModuleFilterFluidRenderMixin",
     "ModuleFilterTooltipMixin",
     "ModularRoutersGhostTargetFluidFixMixin",
     "FluidFilterIconRenderMixin",

@@ -11,8 +11,7 @@ import java.util.function.Function;
 
 public final class JeiFluidTooltipBridge {
 
-    private static final Logger FRU_DEBUG = LogManager.getLogger("FRU-DEBUG-TooltipBridge");
-    private static boolean fru_debug_loggedNullProvider = false;
+    private static final Logger LOGGER = LogManager.getLogger(JeiFluidTooltipBridge.class);
 
     private static volatile Function<FluidStack, List<Component>> provider;
 
@@ -20,30 +19,23 @@ public final class JeiFluidTooltipBridge {
     }
 
     public static void register(Function<FluidStack, List<Component>> newProvider) {
-        FRU_DEBUG.info("[FRU-DEBUG][TooltipBridge] register() called, newProvider={}", newProvider);
         provider = newProvider;
     }
 
     public static Optional<List<Component>> getTooltip(FluidStack stack) {
         Function<FluidStack, List<Component>> current = provider;
         if (current == null) {
-            if (!fru_debug_loggedNullProvider) {
-                fru_debug_loggedNullProvider = true;
-                FRU_DEBUG.info("[FRU-DEBUG][TooltipBridge] provider is null (register() never called, or JEI not present)");
-            }
             return Optional.empty();
         }
         try {
             List<Component> lines = current.apply(stack);
             if (lines == null || lines.isEmpty()) {
-                FRU_DEBUG.info("[FRU-DEBUG][TooltipBridge] provider returned null/empty for stack={}", stack);
                 return Optional.empty();
             }
             return Optional.of(lines);
         } catch (Exception e) {
-            FRU_DEBUG.info("[FRU-DEBUG][TooltipBridge] provider threw exception for stack={}: {}", stack, e.toString());
+            LOGGER.warn("Failed to build JEI fluid tooltip for {}", stack, e);
             return Optional.empty();
         }
     }
 }
-

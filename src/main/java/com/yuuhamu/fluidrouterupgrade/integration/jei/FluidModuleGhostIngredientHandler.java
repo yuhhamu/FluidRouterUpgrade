@@ -6,15 +6,11 @@ import mezz.jei.api.ingredients.ITypedIngredient;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class FluidModuleGhostIngredientHandler<S extends AbstractContainerScreen<?>> implements IGhostIngredientHandler<S> {
-
-    private static final Logger FRU_DEBUG = LogManager.getLogger("FRU-DEBUG-GhostHandler");
 
     @Override
     public <I> List<Target<I>> getTargetsTyped(S gui, ITypedIngredient<I> ingredient, boolean doStart) {
@@ -25,10 +21,6 @@ public class FluidModuleGhostIngredientHandler<S extends AbstractContainerScreen
                 targets.add(new FluidModuleGhostTarget<>(gui, slot));
             }
         }
-        FRU_DEBUG.info("[FRU-DEBUG][GhostHandler] gui={} ingredient={} doStart={} targets={}",
-                gui.getClass().getName(),
-                ingredient.getIngredient() == null ? "null" : ingredient.getIngredient().getClass().getName(),
-                doStart, targets.size());
         return targets;
     }
 
@@ -36,4 +28,3 @@ public class FluidModuleGhostIngredientHandler<S extends AbstractContainerScreen
     public void onComplete() {
     }
 }
-
