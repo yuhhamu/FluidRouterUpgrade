@@ -15,7 +15,7 @@ import net.minecraft.world.item.ItemStack;
  */
 public class ModCreativeTabs {
 
-    public static final CreativeModeTab FLUID_ROUTER_UPGRADE_TAB = new CreativeModeTab(CreativeModeTab.TABS.length, "fluidrouterupgrade") {
+    public static final CreativeModeTab FLUID_ROUTER_UPGRADE_TAB = new CreativeModeTab("fluidrouterupgrade") {
         @Override
         public ItemStack makeIcon() {
             return new ItemStack(ModItems.FLUID_MODE_UPGRADE.get());
