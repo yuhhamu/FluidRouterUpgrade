@@ -1,5 +1,6 @@
 package com.yuuhamu.fluidrouterupgrade.logic;
 
+import com.yuuhamu.fluidrouterupgrade.client.JeiFluidTooltipBridge;
 import com.yuuhamu.fluidrouterupgrade.client.render.FluidBeamRenderer;
 import com.yuuhamu.fluidrouterupgrade.config.FluidRouterUpgradeConfig;
 import com.yuuhamu.fluidrouterupgrade.network.FluidBeamStartMessage;
@@ -53,6 +54,7 @@ import net.minecraftforge.fluids.capability.templates.FluidTank;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.Optional;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -87,9 +89,16 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         return FluidRouterUpgradeConfig.MB_PER_TANK_UPGRADE.get();
     }
 
-    private static int computeMaxTransfer(ModularRouterBlockEntity router) {
-        int n = router.getUpgradeCount(ModItems.STACK_UPGRADE.get());
+    // 2026-09-02修正: StackAugment(StackUpgradeをモジュール単体に適用するための、モジュール自身の
+    // 拡張スロットへ入れるアイテム)が実際の転送量に反映されない不具合の修正。Vanilla本体の
+    // CompiledModule#getItemsPerTick(router)を実ソースでデコンパイル確認したところ、
+    // 「モジュール単体のStackAugment数n>0の場合はRouterレベルのStack Upgrade設定を完全に無視し、
+    // モジュール単体の値で上書きする(加算ではない)」という仕様だった。これに合わせ、
+    // ModuleTargeting.getAugmentCount(compiled, STACK_AUGMENT)が1以上ならそちらを優先して使う。
+    private static int computeMaxTransfer(ModularRouterBlockEntity router, CompiledModule compiled) {
         int maxExponent = FluidRouterUpgradeConfig.MAX_STACK_UPGRADE_EXPONENT.get();
+        int augmentCount = ModuleTargeting.getAugmentCount(compiled, ModItems.STACK_AUGMENT.get());
+        int n = augmentCount > 0 ? augmentCount : router.getUpgradeCount(ModItems.STACK_UPGRADE.get());
         int multiplier = 1 << Math.min(n, maxExponent);
         return FluidRouterUpgradeConfig.BASE_TRANSFER_RATE_MB.get() * multiplier;
     }
@@ -159,7 +168,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         if (target == null) {
             return false;
         }
-        return pullFromTarget(router, target, compiled.getFilter(), compiled.getRegulationAmount());
+        return pullFromTarget(router, target, compiled.getFilter(), compiled.getRegulationAmount(), compiled);
     }
 
     private boolean executeSend(ModularRouterBlockEntity router, CompiledModule compiled) {
@@ -168,7 +177,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
             return false;
         }
         boolean crossDimensionSender = compiled.getClass() == CompiledSenderModule3.class;
-        return pushToTarget(router, target, compiled.getFilter(), compiled.getRegulationAmount(), SEND_BEAM_COLOR, crossDimensionSender);
+        return pushToTarget(router, target, compiled.getFilter(), compiled.getRegulationAmount(), SEND_BEAM_COLOR, crossDimensionSender, compiled);
     }
 
     private ModuleTarget resolveSenderTarget(ModularRouterBlockEntity router, CompiledModule compiled) {
@@ -242,24 +251,24 @@ public class FluidRouterModeProvider implements RouterModeProvider {
                         : CompiledDistributorModule.DistributionStrategy.ROUND_ROBIN;
         int n = targets.size();
         if (n == 1) {
-            return pulling ? pullFromTarget(router, targets.get(0), filter, regulationAmount)
-                    : pushToTarget(router, targets.get(0), filter, regulationAmount, SEND_BEAM_COLOR, false);
+            return pulling ? pullFromTarget(router, targets.get(0), filter, regulationAmount, compiled)
+                    : pushToTarget(router, targets.get(0), filter, regulationAmount, SEND_BEAM_COLOR, false, compiled);
         }
         boolean balancerActive = strategy == CompiledDistributorModule.DistributionStrategy.ROUND_ROBIN
                 && ModuleTargeting.getAugmentCount(compiled, com.yuuhamu.fluidrouterupgrade.registry.ModItems.BALANCER_AUGMENT.get()) > 0;
         if (balancerActive) {
-            return executeBalanced(router, targets, pulling, filter, regulationAmount);
+            return executeBalanced(router, targets, pulling, filter, regulationAmount, compiled);
         }
         return switch (strategy) {
             case RANDOM -> {
                 ModuleTarget target = targets.get(router.nonNullLevel().random.nextInt(n));
-                yield pulling ? pullFromTarget(router, target, filter, regulationAmount)
-                        : pushToTarget(router, target, filter, regulationAmount, SEND_BEAM_COLOR, false);
+                yield pulling ? pullFromTarget(router, target, filter, regulationAmount, compiled)
+                        : pushToTarget(router, target, filter, regulationAmount, SEND_BEAM_COLOR, false, compiled);
             }
             case NEAREST_FIRST -> {
                 for (ModuleTarget target : targets) {
-                    boolean ok = pulling ? pullFromTarget(router, target, filter, regulationAmount)
-                            : pushToTarget(router, target, filter, regulationAmount, SEND_BEAM_COLOR, false);
+                    boolean ok = pulling ? pullFromTarget(router, target, filter, regulationAmount, compiled)
+                            : pushToTarget(router, target, filter, regulationAmount, SEND_BEAM_COLOR, false, compiled);
                     if (ok) {
                         yield true;
                     }
@@ -269,8 +278,8 @@ public class FluidRouterModeProvider implements RouterModeProvider {
             case FURTHEST_FIRST -> {
                 for (int i = n - 1; i >= 0; i--) {
                     ModuleTarget target = targets.get(i);
-                    boolean ok = pulling ? pullFromTarget(router, target, filter, regulationAmount)
-                            : pushToTarget(router, target, filter, regulationAmount, SEND_BEAM_COLOR, false);
+                    boolean ok = pulling ? pullFromTarget(router, target, filter, regulationAmount, compiled)
+                            : pushToTarget(router, target, filter, regulationAmount, SEND_BEAM_COLOR, false, compiled);
                     if (ok) {
                         yield true;
                     }
@@ -283,8 +292,8 @@ public class FluidRouterModeProvider implements RouterModeProvider {
                 for (int i = 0; i < n; i++) {
                     int idx = (start + i) % n;
                     ModuleTarget target = targets.get(idx);
-                    boolean ok = pulling ? pullFromTarget(router, target, filter, regulationAmount)
-                            : pushToTarget(router, target, filter, regulationAmount, SEND_BEAM_COLOR, false);
+                    boolean ok = pulling ? pullFromTarget(router, target, filter, regulationAmount, compiled)
+                            : pushToTarget(router, target, filter, regulationAmount, SEND_BEAM_COLOR, false, compiled);
                     if (ok) {
                         stateOf(router).distributorIndex = idx + 1;
                         success = true;
@@ -297,10 +306,10 @@ public class FluidRouterModeProvider implements RouterModeProvider {
     }
 
     private boolean executeBalanced(ModularRouterBlockEntity router, List<ModuleTarget> targets, boolean pulling,
-                                     Filter filter, int regulationAmount) {
+                                     Filter filter, int regulationAmount, CompiledModule compiled) {
         RouterTankState state = stateOf(router);
         FluidTank tank = state.tank;
-        int allowance = computeMaxTransfer(router);
+        int allowance = computeMaxTransfer(router, compiled);
         if (allowance <= 0) {
             return false;
         }
@@ -378,7 +387,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
     }
 
     private boolean pushToTarget(ModularRouterBlockEntity router, ModuleTarget target, Filter filter, int regulationAmount,
-                                  int beamColor, boolean crossDimensionSender) {
+                                  int beamColor, boolean crossDimensionSender, CompiledModule compiled) {
         Level routerLevel = router.getLevel();
         if (routerLevel == null) {
             return false;
@@ -396,7 +405,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         if (regulationAmount > 0 && tank.getFluidAmount() <= regulationAmount) {
             return false;
         }
-        int maxTransfer = computeMaxTransfer(router);
+        int maxTransfer = computeMaxTransfer(router, compiled);
         FluidStack simulated = tank.drain(maxTransfer, IFluidHandler.FluidAction.SIMULATE);
         if (simulated.isEmpty() || (filter != null && !filter.testFluid(simulated.getFluid()))) {
             return false;
@@ -413,7 +422,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         }).orElse(false);
     }
 
-    private boolean pullFromTarget(ModularRouterBlockEntity router, ModuleTarget target, Filter filter, int regulationAmount) {
+    private boolean pullFromTarget(ModularRouterBlockEntity router, ModuleTarget target, Filter filter, int regulationAmount, CompiledModule compiled) {
         Level routerLevel = router.getLevel();
         if (routerLevel == null) {
             return false;
@@ -431,7 +440,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         if (regulationAmount > 0 && tank.getFluidAmount() >= regulationAmount) {
             return false;
         }
-        int maxTransfer = computeMaxTransfer(router);
+        int maxTransfer = computeMaxTransfer(router, compiled);
         return sourceCap.map(source -> {
             FluidStack simulated = source.drain(maxTransfer, IFluidHandler.FluidAction.SIMULATE);
             if (simulated.isEmpty() || (filter != null && !filter.testFluid(simulated.getFluid()))) {
@@ -454,7 +463,7 @@ public class FluidRouterModeProvider implements RouterModeProvider {
         if (current.isEmpty() || !compiled.getFilter().testFluid(current.getFluid())) {
             return false;
         }
-        int maxTransfer = computeMaxTransfer(router);
+        int maxTransfer = computeMaxTransfer(router, compiled);
         FluidStack drained = tank.drain(maxTransfer, IFluidHandler.FluidAction.EXECUTE);
         return !drained.isEmpty();
     }
@@ -646,7 +655,16 @@ public class FluidRouterModeProvider implements RouterModeProvider {
             lines.add(Component.translatable("gui.fluidrouterupgrade.tank.capacity",
                     Component.translatable("modularrouters.guiText.tooltip.regulator.labelFluidmB", capacity)));
         } else {
-            lines.add(contents.getDisplayName());
+            // 2026-09-02追加: バッファのツールチップをJEIの液体ツールチップ表記(名前+Mod名グレー表示)へ
+            // 統一。JeiFluidTooltipBridge経由でJEI本体のIIngredientRenderer#getTooltipをそのまま
+            // 使うことで、フィルタスロットのツールチップ(FluidFilterSlotRenderer)と同じ見た目にする。
+            // JEIが利用不可(未導入等)の場合は従来通りgetDisplayName()単独へフォールバックする。
+            Optional<List<Component>> jeiLines = JeiFluidTooltipBridge.getTooltip(contents);
+            if (jeiLines.isPresent()) {
+                lines.addAll(jeiLines.get());
+            } else {
+                lines.add(contents.getDisplayName());
+            }
             lines.add(Component.translatable("modularrouters.guiText.tooltip.regulator.labelFluidmB", contents.getAmount())
                     .append(" / ")
                     .append(Component.translatable("modularrouters.guiText.tooltip.regulator.labelFluidmB", capacity)));
