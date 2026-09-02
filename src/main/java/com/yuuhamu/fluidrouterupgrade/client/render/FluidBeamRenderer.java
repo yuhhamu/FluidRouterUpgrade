@@ -9,18 +9,18 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FastColor;
 import net.minecraft.util.Mth;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraft.world.phys.Vec3;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraftforge.client.event.RenderLevelStageEvent;
-import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import org.joml.Matrix4f;
 
 import javax.annotation.Nullable;
@@ -80,7 +80,7 @@ public class FluidBeamRenderer {
         if (fluidId == null) {
             return null;
         }
-        Fluid fluid = ForgeRegistries.FLUIDS.getValue(fluidId);
+        Fluid fluid = BuiltInRegistries.FLUID.get(fluidId);
         if (fluid == null || fluid == Fluids.EMPTY) {
             return null;
         }
@@ -141,7 +141,7 @@ public class FluidBeamRenderer {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES || ACTIVE.isEmpty()) {
             return;
         }
-        Level level = ClientUtil.theClientWorld();
+        Level level = Minecraft.getInstance().level;
         if (level == null) {
             return;
         }
@@ -182,23 +182,19 @@ public class FluidBeamRenderer {
 
         VertexConsumer thick = buffer.getBuffer(ModRenderTypes.BEAM_LINE_THICK);
         ClientUtil.posF(thick, positionMatrix, e.start)
-                .color(br, bg, bb, thickAlpha)
-                .normal(matrixStack.last().normal(), xn, yn, zn)
-                .endVertex();
+                .setColor(br, bg, bb, thickAlpha)
+                .setNormal(xn, yn, zn);
         ClientUtil.posF(thick, positionMatrix, e.end)
-                .color(br, bg, bb, thickAlpha)
-                .normal(matrixStack.last().normal(), xn, yn, zn)
-                .endVertex();
+                .setColor(br, bg, bb, thickAlpha)
+                .setNormal(xn, yn, zn);
 
         VertexConsumer thin = buffer.getBuffer(ModRenderTypes.BEAM_LINE_THIN);
         ClientUtil.posF(thin, positionMatrix, e.start)
-                .color(br, bg, bb, thinAlpha)
-                .normal(matrixStack.last().normal(), xn, yn, zn)
-                .endVertex();
+                .setColor(br, bg, bb, thinAlpha)
+                .setNormal(xn, yn, zn);
         ClientUtil.posF(thin, positionMatrix, e.end)
-                .color(br, bg, bb, thinAlpha)
-                .normal(matrixStack.last().normal(), xn, yn, zn)
-                .endVertex();
+                .setColor(br, bg, bb, thinAlpha)
+                .setNormal(xn, yn, zn);
 
         if (e.haloColor == null) {
             return;
@@ -208,12 +204,10 @@ public class FluidBeamRenderer {
         int hb = e.haloColor & 0xFF;
         VertexConsumer halo = buffer.getBuffer(FluidRenderTypes.HALO_LINE);
         ClientUtil.posF(halo, positionMatrix, e.start)
-                .color(hr, hg, hb, haloAlpha)
-                .normal(matrixStack.last().normal(), xn, yn, zn)
-                .endVertex();
+                .setColor(hr, hg, hb, haloAlpha)
+                .setNormal(xn, yn, zn);
         ClientUtil.posF(halo, positionMatrix, e.end)
-                .color(hr, hg, hb, haloAlpha)
-                .normal(matrixStack.last().normal(), xn, yn, zn)
-                .endVertex();
+                .setColor(hr, hg, hb, haloAlpha)
+                .setNormal(xn, yn, zn);
     }
 }

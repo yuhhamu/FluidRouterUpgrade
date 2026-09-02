@@ -1,62 +1,12 @@
 package com.yuuhamu.fluidrouterupgrade.logic;
 
-import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandlerItem;
-import net.minecraftforge.fluids.capability.templates.FluidTank;
-
-import javax.annotation.Nonnull;
-
-public class RouterTankFluidHandlerItem implements IFluidHandlerItem {
-
-    private final FluidTank tank;
-
-    public RouterTankFluidHandlerItem(FluidTank tank) {
-        this.tank = tank;
-    }
-
-    @Nonnull
-    @Override
-    public ItemStack getContainer() {
-        return ItemStack.EMPTY;
-    }
-
-    @Override
-    public int getTanks() {
-        return tank.getTanks();
-    }
-
-    @Nonnull
-    @Override
-    public FluidStack getFluidInTank(int tank_) {
-        return tank.getFluidInTank(tank_);
-    }
-
-    @Override
-    public int getTankCapacity(int tank_) {
-        return tank.getTankCapacity(tank_);
-    }
-
-    @Override
-    public boolean isFluidValid(int tank_, @Nonnull FluidStack stack) {
-        return tank.isFluidValid(tank_, stack);
-    }
-
-    @Override
-    public int fill(FluidStack resource, FluidAction action) {
-        return tank.fill(resource, action);
-    }
-
-    @Nonnull
-    @Override
-    public FluidStack drain(FluidStack resource, FluidAction action) {
-        return tank.drain(resource, action);
-    }
-
-    @Nonnull
-    @Override
-    public FluidStack drain(int maxDrain, FluidAction action) {
-        return tank.drain(maxDrain, action);
+/**
+ * 廃止: NeoForge版ではRouterModeProvider#getCapabilityがBlockCapability(BLOCK)のみを扱う設計に
+ * 再設計されたため(RouterUpgradeCore NeoForge 1.21.1移植時の変更)、Router自体をFLUID_HANDLER_ITEM
+ * として公開する経路が無くなり、このラッパークラスは不要になった。
+ * (device_bashのマウント制約でファイル削除ができないため、空のプレースホルダとして残置している。)
+ */
+final class RouterTankFluidHandlerItem {
+    private RouterTankFluidHandlerItem() {
     }
 }
-

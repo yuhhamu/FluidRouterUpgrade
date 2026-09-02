@@ -10,10 +10,10 @@ import me.desht.modularrouters.item.module.SenderModule2;
 import me.desht.modularrouters.item.module.SenderModule3;
 import me.desht.modularrouters.item.module.VoidModule;
 import me.desht.modularrouters.logic.filter.matchers.FluidMatcher;
-import me.desht.modularrouters.logic.filter.matchers.IItemMatcher;
+import me.desht.modularrouters.api.matching.IItemMatcher;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.fluids.FluidUtil;
+import net.neoforged.neoforge.fluids.FluidUtil;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -32,7 +32,7 @@ public abstract class FluidFilterSupportMixin {
     @Inject(method = "getFilterItemDisplayName", at = @At("HEAD"), cancellable = true)
     private void fluidrouterupgrade$getFilterItemDisplayName(ItemStack stack, CallbackInfoReturnable<Component> cir) {
         if (isFluidCapableModule() && isRegisteredFluidFilter(stack)) {
-            FluidUtil.getFluidContained(stack).ifPresent(fluidStack -> cir.setReturnValue(fluidStack.getDisplayName()));
+            FluidUtil.getFluidContained(stack).ifPresent(fluidStack -> cir.setReturnValue(fluidStack.getHoverName()));
         }
     }
 
@@ -47,4 +47,3 @@ public abstract class FluidFilterSupportMixin {
         return FluidFilterTag.isTaggedAsFluidFilter(stack) && FluidFilterTag.isEligibleFluidContainer(stack);
     }
 }
-

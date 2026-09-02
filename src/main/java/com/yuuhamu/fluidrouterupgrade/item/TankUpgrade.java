@@ -7,8 +7,7 @@ public class TankUpgrade extends UpgradeItem {
     public static final int MAX_COUNT = 56;
 
     @Override
-    public int getStackLimit(int slot) {
+    public int getInstalledStackLimit() {
         return MAX_COUNT;
     }
 }
-

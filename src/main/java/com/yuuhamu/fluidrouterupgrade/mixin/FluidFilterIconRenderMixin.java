@@ -12,10 +12,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(value = AbstractContainerScreen.class, remap = false)
 public abstract class FluidFilterIconRenderMixin {
 
-    @Inject(method = {"renderSlot", "m_280092_"}, at = @At("TAIL"))
+    @Inject(method = "renderSlot", at = @At("TAIL"))
     private void fluidrouterupgrade$onRenderSlotTail(GuiGraphics guiGraphics, Slot slot, CallbackInfo ci) {
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
         FluidFilterSlotRenderer.renderFluidIconForSlot(guiGraphics, self, slot);
     }
 }
-

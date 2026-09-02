@@ -2,7 +2,12 @@
   "item.fluidrouterupgrade.fluid_mode_upgrade": "液体転送アップグレード",
   "item.fluidrouterupgrade.tank_upgrade": "タンクアップグレード",
   "item.fluidrouterupgrade.balancer_augment": "バランサーオーグメント",
+  "fluidrouterupgrade.itemText.usage.item.fluid_mode_upgrade": "ルーターを液体転送モードへ切り替え、各モジュールがアイテムの代わりに液体を扱うようにします。\n1ルーターにつき1個のみ装着可能。",
+  "fluidrouterupgrade.itemText.usage.item.tank_upgrade": "ルーターの内部流体バッファ容量を増加します(液体転送モード時のみ)。",
+  "fluidrouterupgrade.itemText.usage.item.balancer_augment": "Distributorモジュール専用。ラウンドロビン選択時、全ターゲットへ均等に液体を分散(または排出)します。",
   "itemGroup.fluidrouterupgrade": "FluidRouterUpgrade",
   "gui.fluidrouterupgrade.tank.capacity": "容量: %s",
+  "gui.fluidrouterupgrade.tank.mb": "%s mB",
+  "gui.fluidrouterupgrade.tank.amount_with_capacity": "%s／%s mB",
   "tooltip.fluidrouterupgrade.balancer_augment": "Distributorモジュール専用で、戦略がラウンドロビンの場合のみ効果を発揮する。毎tick1個のターゲットへまとめて送るのではなく、接続された全ターゲットへ液体を分散(または排出)し、時間の経過とともに各ターゲットの充填率が均等に近づいていく。"
 }

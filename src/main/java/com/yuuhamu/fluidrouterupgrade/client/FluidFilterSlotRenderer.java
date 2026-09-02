@@ -12,9 +12,9 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidUtil;
+import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidUtil;
 
 import java.util.Collections;
 import java.util.List;
@@ -52,7 +52,7 @@ public final class FluidFilterSlotRenderer {
         if (jeiLines.isPresent()) {
             return jeiLines;
         }
-        return Optional.of(Collections.singletonList(fluidStack.getDisplayName()));
+        return Optional.of(Collections.singletonList(fluidStack.getHoverName()));
     }
 
     private static Optional<FluidStack> getTaggedFluid(Slot slot) {
@@ -81,12 +81,9 @@ public final class FluidFilterSlotRenderer {
         float g = ((color >> 8) & 0xFF) / 255f;
         float b = (color & 0xFF) / 255f;
         RenderSystem.disableDepthTest();
-        RenderSystem.disableBlend();
         RenderSystem.setShaderColor(r, g, b, a);
         guiGraphics.blit(x, y, OVERLAY_Z, 16, 16, sprite);
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-        RenderSystem.enableBlend();
         RenderSystem.enableDepthTest();
     }
 }
-

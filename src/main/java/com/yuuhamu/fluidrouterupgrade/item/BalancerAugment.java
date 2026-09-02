@@ -11,4 +11,3 @@ public class BalancerAugment extends AugmentItem {
         return moduleType instanceof DistributorModule ? 1 : 0;
     }
 }
-

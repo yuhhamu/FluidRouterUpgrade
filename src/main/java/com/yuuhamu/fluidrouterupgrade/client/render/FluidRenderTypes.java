@@ -21,7 +21,6 @@ public class FluidRenderTypes extends RenderType {
             RenderType.CompositeState.builder()
                     .setLineState(HALO_LINE_SHARD)
                     .setShaderState(RenderStateShard.RENDERTYPE_LINES_SHADER)
-                    .setLayeringState(RenderStateShard.VIEW_OFFSET_Z_LAYERING)
                     .setTextureState(RenderStateShard.NO_TEXTURE)
                     .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
                     .setCullState(RenderStateShard.NO_CULL)

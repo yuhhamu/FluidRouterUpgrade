@@ -1,12 +1,12 @@
 package com.yuuhamu.fluidrouterupgrade.mixin;
 
 import com.yuuhamu.fluidrouterupgrade.logic.FluidFilterTag;
-import me.desht.modularrouters.network.ModuleFilterMessage;
-import me.desht.modularrouters.network.PacketHandler;
+import me.desht.modularrouters.network.messages.ModuleFilterMessage;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidUtil;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidUtil;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -27,7 +27,7 @@ public abstract class ModularRoutersGhostTargetFluidFixMixin {
         ItemStack bucket = FluidUtil.getFilledBucket(fluidStack);
         if (!bucket.isEmpty()) {
             ItemStack tagged = FluidFilterTag.createFluidFilterStack(bucket);
-            PacketHandler.NETWORK.sendToServer(new ModuleFilterMessage(slot().index, tagged));
+            PacketDistributor.sendToServer(new ModuleFilterMessage(slot().index, tagged));
         }
         ci.cancel();
     }

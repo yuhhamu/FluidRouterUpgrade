@@ -7,8 +7,7 @@ public class FluidModeUpgrade extends UpgradeItem {
     public static final int MAX_COUNT = 1;
 
     @Override
-    public int getStackLimit(int slot) {
+    public int getInstalledStackLimit() {
         return MAX_COUNT;
     }
 }
-

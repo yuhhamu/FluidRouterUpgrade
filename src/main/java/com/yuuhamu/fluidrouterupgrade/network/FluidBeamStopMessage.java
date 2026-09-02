@@ -1,45 +1,39 @@
 package com.yuuhamu.fluidrouterupgrade.network;
 
+import com.yuuhamu.fluidrouterupgrade.FluidRouterUpgradeMod;
 import com.yuuhamu.fluidrouterupgrade.client.render.FluidBeamRenderer;
 import com.yuuhamu.fluidrouterupgrade.logic.FluidBeamKey;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record FluidBeamStopMessage(BlockPos routerPos, BlockPos targetPos, boolean isPull, boolean crossDimensionSender)
+        implements CustomPacketPayload {
 
-public class FluidBeamStopMessage {
-    private final BlockPos routerPos;
-    private final BlockPos targetPos;
-    private final boolean isPull;
-    private final boolean crossDimensionSender;
+    public static final CustomPacketPayload.Type<FluidBeamStopMessage> TYPE =
+            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(FluidRouterUpgradeMod.MODID, "fluid_beam_stop"));
 
-    public FluidBeamStopMessage(BlockPos routerPos, BlockPos targetPos, boolean isPull, boolean crossDimensionSender) {
-        this.routerPos = routerPos;
-        this.targetPos = targetPos;
-        this.isPull = isPull;
-        this.crossDimensionSender = crossDimensionSender;
+    public static final StreamCodec<RegistryFriendlyByteBuf, FluidBeamStopMessage> STREAM_CODEC = StreamCodec.composite(
+            BlockPos.STREAM_CODEC, FluidBeamStopMessage::routerPos,
+            BlockPos.STREAM_CODEC, FluidBeamStopMessage::targetPos,
+            ByteBufCodecs.BOOL, FluidBeamStopMessage::isPull,
+            ByteBufCodecs.BOOL, FluidBeamStopMessage::crossDimensionSender,
+            FluidBeamStopMessage::new
+    );
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 
-    FluidBeamStopMessage(FriendlyByteBuf buf) {
-        this.routerPos = buf.readBlockPos();
-        this.targetPos = buf.readBlockPos();
-        this.isPull = buf.readBoolean();
-        this.crossDimensionSender = buf.readBoolean();
-    }
-
-    public void toBytes(FriendlyByteBuf buf) {
-        buf.writeBlockPos(routerPos);
-        buf.writeBlockPos(targetPos);
-        buf.writeBoolean(isPull);
-        buf.writeBoolean(crossDimensionSender);
-    }
-
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            FluidBeamKey key = new FluidBeamKey(routerPos, targetPos, isPull, crossDimensionSender);
+    public static void handle(FluidBeamStopMessage payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            FluidBeamKey key = new FluidBeamKey(payload.routerPos(), payload.targetPos(), payload.isPull(), payload.crossDimensionSender());
             FluidBeamRenderer.stop(key);
         });
-        ctx.get().setPacketHandled(true);
     }
 }

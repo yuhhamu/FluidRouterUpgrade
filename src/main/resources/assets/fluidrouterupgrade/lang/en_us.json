@@ -2,7 +2,12 @@
   "item.fluidrouterupgrade.fluid_mode_upgrade": "Fluid Transfer Upgrade",
   "item.fluidrouterupgrade.tank_upgrade": "Tank Upgrade",
   "item.fluidrouterupgrade.balancer_augment": "Balancer Augment",
+  "fluidrouterupgrade.itemText.usage.item.fluid_mode_upgrade": "Switches the router into Fluid Transfer mode, letting its modules move fluids instead of items.\nOnly 1 can be installed per router.",
+  "fluidrouterupgrade.itemText.usage.item.tank_upgrade": "Increases the router's internal fluid buffer capacity (Fluid Transfer mode only).",
+  "fluidrouterupgrade.itemText.usage.item.balancer_augment": "Distributor Module only. When Round Robin is selected, distributes (or drains) fluid evenly across all targets.",
   "itemGroup.fluidrouterupgrade": "FluidRouterUpgrade",
   "gui.fluidrouterupgrade.tank.capacity": "Capacity: %s",
+  "gui.fluidrouterupgrade.tank.mb": "%s mB",
+  "gui.fluidrouterupgrade.tank.amount_with_capacity": "%s / %s mB",
   "tooltip.fluidrouterupgrade.balancer_augment": "Distributor Module only, and only while its strategy is set to Round Robin. Instead of sending one full batch to one target per tick, spreads (or drains) fluid across all connected targets so their fill percentages converge toward equal over time."
 }

@@ -1,7 +1,37 @@
 pluginManagement {
     repositories {
-        maven { url = 'https://maven.minecraftforge.net/' }
         gradlePluginPortal()
         mavenCentral()
     }
+    plugins {
+        id 'net.neoforged.moddev' version '2.0.74'
+        id 'net.neoforged.moddev.repositories' version '2.0.74'
+    }
 }
+plugins {
+    id 'net.neoforged.moddev.repositories'
+}
+dependencyResolutionManagement {
+    repositories {
+        maven {
+            name = 'NeoForged'
+            url = 'https://maven.neoforged.net/releases'
+        }
+        mavenCentral()
+        maven {
+            url = 'https://api.modrinth.com/maven'
+            content {
+                includeGroup 'maven.modrinth'
+            }
+        }
+        maven {
+            name = 'ModMaven'
+            url = 'https://modmaven.dev'
+            content {
+                includeGroup 'mezz.jei'
+            }
+        }
+    }
+}
+
+rootProject.name = 'fluidrouterupgrade'

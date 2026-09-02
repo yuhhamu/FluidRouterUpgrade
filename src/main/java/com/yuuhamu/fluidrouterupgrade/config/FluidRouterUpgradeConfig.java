@@ -1,19 +1,19 @@
 package com.yuuhamu.fluidrouterupgrade.config;
 
-import net.minecraftforge.common.ForgeConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
 public final class FluidRouterUpgradeConfig {
 
-    public static final ForgeConfigSpec SPEC;
+    public static final ModConfigSpec SPEC;
 
-    public static final ForgeConfigSpec.IntValue BASE_TRANSFER_RATE_MB;
-    public static final ForgeConfigSpec.IntValue MAX_STACK_UPGRADE_EXPONENT;
-    public static final ForgeConfigSpec.IntValue BASE_TANK_CAPACITY_MB;
-    public static final ForgeConfigSpec.IntValue MAX_TANK_UPGRADES;
-    public static final ForgeConfigSpec.IntValue MB_PER_TANK_UPGRADE;
+    public static final ModConfigSpec.IntValue BASE_TRANSFER_RATE_MB;
+    public static final ModConfigSpec.IntValue MAX_STACK_UPGRADE_EXPONENT;
+    public static final ModConfigSpec.IntValue BASE_TANK_CAPACITY_MB;
+    public static final ModConfigSpec.IntValue MAX_TANK_UPGRADES;
+    public static final ModConfigSpec.IntValue MB_PER_TANK_UPGRADE;
 
     static {
-        ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
+        ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
         builder.push("fluidTransfer");
         BASE_TRANSFER_RATE_MB = builder
@@ -43,4 +43,3 @@ public final class FluidRouterUpgradeConfig {
     private FluidRouterUpgradeConfig() {
     }
 }
-

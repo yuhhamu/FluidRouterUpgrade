@@ -29,4 +29,3 @@ public class FluidRouterVisualBlock extends Block implements RouterVisualBlock {
         builder.add(ModularRouterBlock.FACING, ModularRouterBlock.ACTIVE);
     }
 }
-

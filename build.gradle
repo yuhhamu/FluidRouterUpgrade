@@ -1,7 +1,6 @@
 plugins {
-    id 'eclipse'
-    id 'idea'
-    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'net.neoforged.moddev'
+    id 'maven-publish'
 }
 
 version = mod_version
@@ -11,110 +10,69 @@ base {
     archivesName = mod_id
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
 
-minecraft {
-    mappings channel: mapping_channel, version: mapping_version
+neoForge {
+    version = project.neoforge_version
+
+    parchment {
+        minecraftVersion = project.'neoForge.parchment.minecraftVersion'
+        mappingsVersion  = project.'neoForge.parchment.mappingsVersion'
+    }
+
+    mods {
+        fluidrouterupgrade {
+            sourceSet sourceSets.main
+        }
+    }
 
     runs {
+        configureEach {
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+
         client {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-            mods {
-                fluidrouterupgrade {
-                    source sourceSets.main
-                }
-            }
+            client()
+            gameDirectory = project.file('run')
         }
 
         server {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-            args '--nogui'
-            mods {
-                fluidrouterupgrade {
-                    source sourceSets.main
-                }
-            }
+            server()
+            gameDirectory = project.file('run/server')
+            programArguments.add('--nogui')
         }
 
         data {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-            args '--mod', 'fluidrouterupgrade', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
-            mods {
-                fluidrouterupgrade {
-                    source sourceSets.main
-                }
-            }
+            data()
+            gameDirectory = project.file('run')
+            programArguments.addAll(
+                    '--mod', mod_id,
+                    '--all',
+                    '--output', file('src/generated/resources/').absolutePath,
+                    '--existing', file('src/main/resources/').absolutePath
+            )
         }
     }
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
-repositories {
-    maven { url = uri("${project(':').projectDir}/../../../RouterUpgradeCore/Forge/1.20.1/.localRepo") }
-    mavenCentral()
-    maven { url = 'https://libraries.minecraft.net/' }
-    maven { url = 'https://maven.minecraftforge.net/' }
-    maven {
-        url = "https://api.modrinth.com/maven"
-        content {
-            includeGroup "maven.modrinth"
-        }
-    }
-    maven {
-        name = "ModMaven"
-        url = "https://modmaven.dev"
-        content {
-            includeGroup "mezz.jei"
-        }
-    }
-    maven {
-        name = "Progwml6 maven"
-        url = "https://dvs1.progwml6.com/files/maven/"
-        content {
-            includeGroup "mezz.jei"
-        }
-    }
-}
-
 dependencies {
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    implementation "maven.modrinth:modular-routers:${modularrouters_version}"
 
-    implementation fg.deobf("maven.modrinth:modular-routers:${modularrouters_version}")
-
-    compileOnly files("${project(':').projectDir}/../../../RouterUpgradeCore/Forge/1.20.1/build/libs/routerupgradecore-${routerupgradecore_version}.jar")
+    implementation files("${project(':').projectDir}/../../../RouterUpgradeCore/NeoForge/1.21.1/build/libs/routerupgradecore-${routerupgradecore_version}.jar")
 
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 
-    compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
-    compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}")
-    runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
+    compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
+    runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-}
-
-jar {
-    manifest {
-        attributes([
-                "MixinConfigs": "fluidrouterupgrade.mixins.json"
-        ])
-    }
 }
 
 tasks.named('processResources', ProcessResources).configure {
@@ -122,15 +80,14 @@ tasks.named('processResources', ProcessResources).configure {
 
     var replaceProperties = [
             minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
-            forge_version: forge_version, forge_version_range: forge_version_range,
+            neoforge_version: neoforge_version, neoforge_version_range: neoforge_version_range,
             loader_version_range: loader_version_range,
             mod_id: mod_id, mod_name: mod_name, mod_license: mod_license,
             mod_version: mod_version, mod_authors: mod_authors, mod_description: mod_description,
     ]
     inputs.properties replaceProperties
 
-    filesMatching(['META-INF/mods.toml']) {
+    filesMatching(['META-INF/neoforge.mods.toml']) {
         expand replaceProperties + [project: project]
     }
 }
-

@@ -19,7 +19,7 @@ import java.util.Optional;
 @Mixin(value = AbstractContainerScreen.class, remap = false)
 public abstract class ModuleFilterTooltipMixin {
 
-    @Inject(method = {"renderTooltip", "m_280072_"}, at = @At("HEAD"), cancellable = true)
+    @Inject(method = "renderTooltip", at = @At("HEAD"), cancellable = true)
     private void fluidrouterupgrade$onRenderTooltip(GuiGraphics guiGraphics, int x, int y, CallbackInfo ci) {
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
         AbstractContainerMenu menu = self.getMenu();
